@@ -1,0 +1,25 @@
+# Entorno Virtual
+venv/
+env/
+ENV/
+
+# Python (Archivos compilados)
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Configuración y Secretos (CRUCIAL)
+.env
+
+# Base de Datos Local (SQLite por si acaso alguien la usa)
+*.sqlite3
+db.sqlite3
+
+# Archivos de VS Code o Editores
+.vscode/
+.idea/
+*.swp
+
+# Media y Static (Archivos subidos por usuarios)
+media/
+static/
