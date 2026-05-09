@@ -2,8 +2,6 @@
 
 Instrucciones para que todos tengamos la misma base y tener conectado la base de datos con PostgreSQL.
 
-````markdown
-
 ### 1. Setup inicial
 
 ```bash
