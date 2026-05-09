@@ -99,4 +99,3 @@ python manage.py migrate
 ```
 
 * No subas el archivo `.env` a GitHub.
-```
