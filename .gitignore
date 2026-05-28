@@ -22,4 +22,3 @@ db.sqlite3
 
 # Media y Static (Archivos subidos por usuarios)
 media/
-static/
