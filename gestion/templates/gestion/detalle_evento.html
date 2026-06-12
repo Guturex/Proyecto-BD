@@ -1,0 +1,94 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SalasMan — Detalle de evento</title>
+  <link rel="stylesheet" href="{% static 'gestion/css/crear_evento.css' %}">
+</head>
+<body>
+  <header class="cabecera">
+    <div class="cabecera__titulo">
+      <img src="{% static 'gestion/img/logo.png' %}" alt="Logo" class="cabecera__logo">
+      <p class="cabecera__semana">Detalle de evento</p>
+    </div>
+    <nav class="cabecera__acciones">
+      <a class="btn btn--primario" href="{% url 'gestion:editar_evento' evento.id %}">Editar evento</a>
+      <a class="btn btn--secundario" href="{% url 'gestion:calendario' %}">← Volver al calendario</a>
+      <a class="btn btn--ghost" href="{% url 'gestion:eliminar_evento' evento.id %}" style="color: #DC2626; border-color: #DC2626;">Eliminar evento</a>
+    </nav>
+  </header>
+
+  <main class="contenedor">
+    <div class="formulario">
+
+      <div class="detalle__fila">
+        <span class="detalle__label">Nombre del evento</span>
+        <span class="detalle__valor">{{ evento.nombre_evento }}</span>
+      </div>
+
+      <div class="detalle__fila">
+        <span class="detalle__label">Responsable</span>
+        <span class="detalle__valor">{{ evento.nombre_responsable }}</span>
+      </div>
+
+      <div class="detalle__fila">
+        <span class="detalle__label">Correo</span>
+        <span class="detalle__valor">{{ evento.correo_responsable|default:"—" }}</span>
+      </div>
+
+      <div class="detalle__fila">
+        <span class="detalle__label">Asistentes</span>
+        <span class="detalle__valor">{{ evento.num_asistentes }}</span>
+      </div>
+
+      <div class="detalle__fila">
+        <span class="detalle__label">Fecha</span>
+        <span class="detalle__valor">{{ evento.fecha }}</span>
+      </div>
+
+      <div class="detalle__fila">
+        <span class="detalle__label">Horario</span>
+        <span class="detalle__valor">{{ evento.hora_inicio|time:"H:i" }} – {{ evento.hora_fin|time:"H:i" }}</span>
+      </div>
+
+      <div class="detalle__fila">
+        <span class="detalle__label">Estado</span>
+        <span class="detalle__valor">{{ evento.get_estado_display }}</span>
+      </div>
+
+      <div class="detalle__fila">
+        <span class="detalle__label">Salas</span>
+        <span class="detalle__valor">
+          {% for sala in evento.salas.all %}{{ sala.nombre }}{% if not forloop.last %}, {% endif %}{% endfor %}
+        </span>
+      </div>
+
+      <div class="detalle__fila">
+        <span class="detalle__label">Notas</span>
+        <span class="detalle__valor">{{ evento.notas|default:"—" }}</span>
+      </div>
+
+      <div class="detalle__fila">
+        <span class="detalle__label">Servicios adicionales</span>
+        <span class="detalle__valor">
+          {% for servicio in evento.servicios.all %}{{ servicio.get_tipo_display }}{% if not forloop.last %}, {% endif %}{% empty %}—{% endfor %}
+        </span>
+      </div>
+
+      <div class="detalle__fila">
+        <span class="detalle__label">Recurrencia</span>
+        <span class="detalle__valor">
+          {% if evento.regla_recurrencia %}
+            {{ evento.regla_recurrencia.get_tipo_display }} hasta {{ evento.regla_recurrencia.fecha_fin_serie }}
+          {% else %}
+            Sin recurrencia
+          {% endif %}
+        </span>
+      </div>
+
+    </div>
+  </main>
+</body>
+</html>

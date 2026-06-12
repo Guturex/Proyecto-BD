@@ -1,0 +1,32 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SalasMan — Eliminar evento</title>
+  <link rel="stylesheet" href="{% static 'gestion/css/crear_evento.css' %}">
+</head>
+<body>
+  <header class="cabecera">
+    <div class="cabecera__titulo">
+      <img src="{% static 'gestion/img/logo.png' %}" alt="Logo" class="cabecera__logo">
+      <p class="cabecera__semana">Eliminar evento</p>
+    </div>
+    <nav class="cabecera__acciones">
+      <a class="btn btn--secundario" href="{% url 'gestion:detalle_evento' evento.id %}">← Volver al detalle</a>
+    </nav>
+  </header>
+
+  <main class="contenedor">
+    <div class="formulario">
+      <p style="font-size: 15px; color: #0F172A;">¿Estás seguro de que deseas eliminar el evento <strong>{{ evento.nombre_evento }}</strong>? Esta acción no se puede deshacer.</p>
+      <form method="post" style="display: flex; gap: 12px; margin-top: 8px;">
+        {% csrf_token %}
+        <button type="submit" style="background-color: #DC2626;">Sí, eliminar</button>
+        <a class="btn btn--secundario" href="{% url 'gestion:detalle_evento' evento.id %}">Cancelar</a>
+      </form>
+    </div>
+  </main>
+</body>
+</html>
