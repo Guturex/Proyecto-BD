@@ -6,23 +6,22 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Calendario semanal</title>
-  <link rel="stylesheet" href="{% static 'gestion/css/calendario.css' %}">
+  <title>SalasMan — Calendario semanal</title>
+  <link rel="stylesheet" href="{% static 'css/calendario.css' %}">
 </head>
 
 <body>
   <header class="cabecera">
     <div class="cabecera__titulo">
       <!-- <h1>Calendario de salas</h1> -->
-       <img src="{% static 'gestion/img/logo.png' %}" alt="Logo" class="cabecera__logo" style="max-width: 15%; max-height: 15%;">
-       <p>Hoy es {% now "D d E Y" %}</p>
+      <img src="{% static 'gestion/img/logo.png' %}" alt="Logo" class="cabecera__logo">
+      <p>Hoy es {% now "D d E Y" %}</p>
       <p class="cabecera__semana">{{ etiqueta_semana }}</p>
     </div>
-
     <nav class="cabecera__acciones">
       <a class="btn btn--secundario" href="?semana={{ semana_previa }}">← Semana anterior</a>
       {% if desplazamiento != 0 %}
-        <a class="btn btn--secundario" href="?semana=0">Semana actual</a>
+      <a class="btn btn--primario" href="?semana=0">Hoy</a>
       {% endif %}
       <a class="btn btn--secundario" href="?semana={{ semana_siguiente }}">Semana siguiente →</a>
       <a class="btn btn--secundario" href="{% url 'gestion:logout' %}">Cerrar sesión</a>
@@ -36,46 +35,41 @@
           <tr>
             <th class="col-hora" rowspan="2">Hora</th>
             {% for dia in datos_dias %}
-              <th class="col-dia" colspan="{{ salas|length }}">
-                {{ dia.nombre }}<br>
-                <span class="fecha-dia">{{ dia.fecha_str }}</span>
-              </th>
+            <th class="col-dia" colspan="{{ salas|length }}">
+              {{ dia.nombre }}<br>
+              <span class="fecha-dia">{{ dia.fecha_str }}</span>
+            </th>
             {% endfor %}
           </tr>
           <tr>
             {% for dia in datos_dias %}
-              {% for sala in salas %}
-                <th class="col-sala">{{ sala.nombre }}</th>
-              {% endfor %}
+            {% for sala in salas %}
+            <th class="col-sala">{{ sala.nombre }}</th>
+            {% endfor %}
             {% endfor %}
           </tr>
         </thead>
         <tbody>
           {% for fila in filas %}
-            <tr>
-              <td class="celda-hora">
-                {{ fila.etiqueta_hora }}<br>
-                <span class="hora-fin">{{ fila.hora_fin }}</span>
-              </td>
-              {% for celda in fila.celdas %}
-                {% if not celda.saltar %}
-                  <td
-                    class="celda {% if celda.evento %}celda--ocupada{% else %}celda--libre{% endif %}"
-                    {% if celda.rowspan > 1 %}rowspan="{{ celda.rowspan }}"{% endif %}
-                  >
-                    {% if celda.evento %}
-                      <article class="evento">
-                        <strong>{{ celda.evento.nombre_evento }}</strong>
-                        <span class="evento__horario">
-                          {{ celda.evento.hora_inicio|time:"H:i" }}–{{ celda.evento.hora_fin|time:"H:i" }}
-                        </span>
-                        <span class="evento__responsable">{{ celda.evento.nombre_responsable }}</span>
-                      </article>
-                    {% endif %}
-                  </td>
-                {% endif %}
-              {% endfor %}
-            </tr>
+          <tr>
+            <td class="celda-hora">
+              {{ fila.etiqueta_hora }}<br>
+              <span class="hora-fin">{{ fila.hora_fin }}</span>
+            </td>
+            {% for celda in fila.celdas %}
+            {% if not celda.saltar %}
+            <td class="celda {% if celda.evento %}celda--ocupada{% else %}celda--libre{% endif %}" {% if celda.rowspan > 1 %}rowspan="{{ celda.rowspan }}"{% endif %}>
+              {% if celda.evento %}
+              <article class="evento">
+                <strong>{{ celda.evento.nombre_evento }}</strong>
+                <span class="evento__horario">{{ celda.evento.hora_inicio|time:"H:i" }}–{{ celda.evento.hora_fin|time:"H:i" }}</span>
+                <span class="evento__responsable">{{ celda.evento.nombre_responsable }}</span>
+              </article>
+              {% endif %}
+            </td>
+            {% endif %}
+            {% endfor %}
+          </tr>
           {% endfor %}
         </tbody>
       </table>
