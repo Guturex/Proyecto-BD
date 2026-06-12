@@ -1,0 +1,51 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SalasMan — Incidencias</title>
+  <link rel="stylesheet" href="{% static 'gestion/css/crear_evento.css' %}">
+</head>
+<body>
+  <header class="cabecera">
+    <div class="cabecera__titulo">
+      <img src="{% static 'gestion/img/logo.png' %}" alt="Logo" class="cabecera__logo">
+      <p class="cabecera__semana">Incidencias</p>
+    </div>
+    <nav class="cabecera__acciones">
+      <a class="btn btn--primario" href="{% url 'gestion:crear_incidencia' %}">+ Reportar incidencia</a>
+      <a class="btn btn--secundario" href="{% url 'gestion:calendario' %}">← Volver al calendario</a>
+    </nav>
+  </header>
+
+  <main class="contenedor">
+    {% if incidencias %}
+    <table class="tabla">
+      <thead>
+        <tr>
+          <th>Fecha</th>
+          <th>Sala</th>
+          <th>Tipo</th>
+          <th>Evento</th>
+          <th>Descripción</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for incidencia in incidencias %}
+        <tr>
+          <td>{{ incidencia.fecha }}</td>
+          <td>{{ incidencia.sala.nombre }}</td>
+          <td>{{ incidencia.get_tipo_display }}</td>
+          <td>{{ incidencia.evento.nombre_evento|default:"—" }}</td>
+          <td>{{ incidencia.descripcion }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p class="vacio">No hay incidencias reportadas.</p>
+    {% endif %}
+  </main>
+</body>
+</html>

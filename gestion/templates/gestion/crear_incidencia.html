@@ -1,0 +1,70 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SalasMan — Reportar incidencia</title>
+  <link rel="stylesheet" href="{% static 'gestion/css/crear_evento.css' %}">
+</head>
+<body>
+  <header class="cabecera">
+    <div class="cabecera__titulo">
+      <img src="{% static 'gestion/img/logo.png' %}" alt="Logo" class="cabecera__logo">
+      <p class="cabecera__semana">Reportar incidencia</p>
+    </div>
+    <nav class="cabecera__acciones">
+      <a class="btn btn--secundario" href="{% url 'gestion:lista_incidencias' %}">← Volver a incidencias</a>
+    </nav>
+  </header>
+
+  <main class="contenedor">
+    <form method="post" class="formulario">
+      {% csrf_token %}
+
+      {% if error %}
+      <div class="formulario__errores">
+        <p class="error">{{ error }}</p>
+      </div>
+      {% endif %}
+
+      <div class="formulario__grupo">
+        <label for="sala">Sala</label>
+        <select id="sala" name="sala" required>
+          <option value="">Selecciona una sala</option>
+          {% for sala in salas %}
+          <option value="{{ sala.id }}">{{ sala.nombre }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="formulario__grupo">
+        <label for="evento">Evento (opcional)</label>
+        <select id="evento" name="evento">
+          <option value="">Sin evento</option>
+          {% for evento in eventos %}
+          <option value="{{ evento.id }}">{{ evento.nombre_evento }} — {{ evento.fecha }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="formulario__grupo">
+        <label for="tipo">Tipo de incidencia</label>
+        <select id="tipo" name="tipo" required>
+          <option value="">Selecciona un tipo</option>
+          <option value="DAÑO">Daño en equipo</option>
+          <option value="FALLA">Falla técnica</option>
+          <option value="OTRO">Otro</option>
+        </select>
+      </div>
+
+      <div class="formulario__grupo">
+        <label for="descripcion">Descripción</label>
+        <textarea id="descripcion" name="descripcion" rows="4" required></textarea>
+      </div>
+
+      <button type="submit">Guardar incidencia</button>
+    </form>
+  </main>
+</body>
+</html>

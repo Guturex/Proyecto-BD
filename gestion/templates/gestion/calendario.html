@@ -19,11 +19,13 @@
       <p class="cabecera__semana">{{ etiqueta_semana }}</p>
     </div>
     <nav class="cabecera__acciones">
+      <a class="btn btn--secundario" href="{% url 'gestion:lista_incidencias' %}">Incidencias</a>
       <a class="btn btn--secundario" href="?semana={{ semana_previa }}">← Semana anterior</a>
       {% if desplazamiento != 0 %}
       <a class="btn btn--primario" href="?semana=0">Hoy</a>
       {% endif %}
       <a class="btn btn--secundario" href="?semana={{ semana_siguiente }}">Semana siguiente →</a>
+      <a class="btn btn--primario" href="{% url 'gestion:crear_evento' %}">+ Nuevo evento</a>
       <a class="btn btn--secundario" href="{% url 'gestion:logout' %}">Cerrar sesión</a>
     </nav>
   </header>
@@ -60,11 +62,14 @@
             {% if not celda.saltar %}
             <td class="celda {% if celda.evento %}celda--ocupada{% else %}celda--libre{% endif %}" {% if celda.rowspan > 1 %}rowspan="{{ celda.rowspan }}"{% endif %}>
               {% if celda.evento %}
-              <article class="evento">
-                <strong>{{ celda.evento.nombre_evento }}</strong>
-                <span class="evento__horario">{{ celda.evento.hora_inicio|time:"H:i" }}–{{ celda.evento.hora_fin|time:"H:i" }}</span>
-                <span class="evento__responsable">{{ celda.evento.nombre_responsable }}</span>
-              </article>
+              <a href="{% url 'gestion:detalle_evento' celda.evento.id %}" style="text-decoration: none;">
+                <article class="evento">
+                  <strong>{{ celda.evento.nombre_evento }}</strong>
+                  <span class="evento__horario">{{ celda.evento.hora_inicio|time:"H:i" }}–{{ celda.evento.hora_fin|time:"H:i" }}</span>
+                  <span class="evento__responsable">{{ celda.evento.nombre_responsable }}</span>
+                </article>
+              </a>
+              
               {% endif %}
             </td>
             {% endif %}

@@ -4,6 +4,8 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from .models import Sala, Evento
+from .models import Sala, Evento, ReglaRecurrencia, ServicioAdicional
+from .models import Sala, Evento, ReglaRecurrencia, ServicioAdicional, Incidente
 
 '''
 Vistas principales del sistema SalasMan.
@@ -192,3 +194,196 @@ def calendario(request):
         'etiqueta_semana': f"{dias[0].strftime('%d %b')} – {dias[-1].strftime('%d %b %Y')}",
     }
     return render(request, 'gestion/calendario.html', contexto)
+
+# -----------------------------------------
+#  4. CREAR EVENTO
+# -----------------------------------------
+
+'''
+Vista para crear un nuevo evento.
+Muestra un formulario con todos los campos del modelo Evento.
+Si el formulario es válido, guarda el evento y redirige al calendario.
+'''
+
+@login_required(login_url='gestion:login')
+def crear_evento(request):
+    salas = Sala.objects.all().order_by('nombre')
+    if request.method == 'POST':
+        nombre_evento = request.POST.get('nombre_evento')
+        nombre_responsable = request.POST.get('nombre_responsable')
+        correo_responsable = request.POST.get('correo_responsable')
+        num_asistentes = request.POST.get('num_asistentes')
+        fecha = request.POST.get('fecha')
+        hora_inicio = request.POST.get('hora_inicio')
+        hora_fin = request.POST.get('hora_fin')
+        salas_ids = request.POST.getlist('salas')
+        notas = request.POST.get('notas')
+
+        try:
+            evento = Evento(
+                nombre_evento=nombre_evento,
+                nombre_responsable=nombre_responsable,
+                correo_responsable=correo_responsable,
+                num_asistentes=num_asistentes,
+                fecha=fecha,
+                hora_inicio=hora_inicio,
+                hora_fin=hora_fin,
+                notas=notas,
+            )
+            evento.full_clean()
+            evento.save()
+            evento.salas.set(salas_ids)
+
+            recurrencia = request.POST.get('recurrencia')
+            fecha_fin_serie = request.POST.get('fecha_fin_serie')
+            if recurrencia and fecha_fin_serie:
+                ReglaRecurrencia.objects.create(
+                    evento_base=evento,
+                    tipo=recurrencia,
+                    fecha_fin_serie=fecha_fin_serie,
+                )
+
+            servicios_ids = request.POST.getlist('servicios')
+            for tipo in servicios_ids:
+                ServicioAdicional.objects.create(
+                    evento=evento,
+                    tipo=tipo,
+                )
+
+            return redirect('gestion:calendario')
+        except Exception as e:
+            contexto = {'salas': salas, 'errores': e.message_dict if hasattr(e, 'message_dict') else {'error': [str(e)]}}
+            return render(request, 'gestion/crear_evento.html', contexto)
+
+    contexto = {'salas': salas}
+    return render(request, 'gestion/crear_evento.html', contexto)
+# -----------------------------------------
+#  5. LISTA DE INCIDENCIAS
+# -----------------------------------------
+
+'''
+Vista para listar todas las incidencias reportadas.
+Muestra la lista ordenada por fecha descendente.
+'''
+
+@login_required(login_url='gestion:login')
+def lista_incidencias(request):
+    incidencias = Incidente.objects.all().select_related('sala', 'evento')
+    contexto = {'incidencias': incidencias}
+    return render(request, 'gestion/lista_incidencias.html', contexto)
+
+
+# -----------------------------------------
+#  6. CREAR INCIDENCIA
+# -----------------------------------------
+
+'''
+Vista para reportar una nueva incidencia.
+Muestra un formulario con sala, evento, tipo y descripción.
+'''
+
+@login_required(login_url='gestion:login')
+def crear_incidencia(request):
+    salas = Sala.objects.all().order_by('nombre')
+    eventos = Evento.objects.all().order_by('-fecha')
+    if request.method == 'POST':
+        try:
+            sala_id = request.POST.get('sala')
+            evento_id = request.POST.get('evento')
+            tipo = request.POST.get('tipo')
+            descripcion = request.POST.get('descripcion')
+
+            incidencia = Incidente(
+                sala_id=sala_id,
+                evento_id=evento_id if evento_id else None,
+                tipo=tipo,
+                descripcion=descripcion,
+            )
+            incidencia.save()
+            return redirect('gestion:lista_incidencias')
+        except Exception as e:
+            contexto = {'salas': salas, 'eventos': eventos, 'error': str(e)}
+            return render(request, 'gestion/crear_incidencia.html', contexto)
+
+    contexto = {'salas': salas, 'eventos': eventos}
+    return render(request, 'gestion/crear_incidencia.html', contexto)
+# -----------------------------------------
+#  7. DETALLE DE EVENTO
+# -----------------------------------------
+
+'''
+Vista para ver el detalle de un evento específico.
+Muestra toda la información del evento, sus salas, servicios y recurrencia.
+'''
+
+@login_required(login_url='gestion:login')
+def detalle_evento(request, evento_id):
+    evento = Evento.objects.prefetch_related('salas', 'servicios').select_related('regla_recurrencia').get(id=evento_id)
+    contexto = {'evento': evento}
+    return render(request, 'gestion/detalle_evento.html', contexto)
+# -----------------------------------------
+#  8. EDITAR EVENTO
+# -----------------------------------------
+
+'''
+Vista para editar un evento existente.
+Carga los datos actuales en el formulario y los actualiza al hacer POST.
+'''
+
+@login_required(login_url='gestion:login')
+def editar_evento(request, evento_id):
+    evento = Evento.objects.prefetch_related('salas', 'servicios').select_related('regla_recurrencia').get(id=evento_id)
+    salas = Sala.objects.all().order_by('nombre')
+
+    if request.method == 'POST':
+        try:
+            evento.nombre_evento = request.POST.get('nombre_evento')
+            evento.nombre_responsable = request.POST.get('nombre_responsable')
+            evento.correo_responsable = request.POST.get('correo_responsable')
+            evento.num_asistentes = request.POST.get('num_asistentes')
+            evento.fecha = request.POST.get('fecha')
+            evento.hora_inicio = request.POST.get('hora_inicio')
+            evento.hora_fin = request.POST.get('hora_fin')
+            evento.notas = request.POST.get('notas')
+            evento.full_clean()
+            evento.save()
+            evento.salas.set(request.POST.getlist('salas'))
+
+            recurrencia = request.POST.get('recurrencia')
+            fecha_fin_serie = request.POST.get('fecha_fin_serie')
+            if recurrencia and fecha_fin_serie:
+                ReglaRecurrencia.objects.update_or_create(
+                    evento_base=evento,
+                    defaults={'tipo': recurrencia, 'fecha_fin_serie': fecha_fin_serie}
+                )
+            else:
+                ReglaRecurrencia.objects.filter(evento_base=evento).delete()
+
+            evento.servicios.all().delete()
+            for tipo in request.POST.getlist('servicios'):
+                ServicioAdicional.objects.create(evento=evento, tipo=tipo)
+
+            return redirect('gestion:detalle_evento', evento_id=evento.id)
+        except Exception as e:
+            contexto = {'evento': evento, 'salas': salas, 'errores': e.message_dict if hasattr(e, 'message_dict') else {'error': [str(e)]}}
+            return render(request, 'gestion/editar_evento.html', contexto)
+
+    contexto = {'evento': evento, 'salas': salas}
+    return render(request, 'gestion/editar_evento.html', contexto)  
+# -----------------------------------------
+#  9. ELIMINAR EVENTO
+# -----------------------------------------
+
+'''
+Vista para eliminar un evento existente.
+Solicita confirmación antes de eliminar.
+'''
+
+@login_required(login_url='gestion:login')
+def eliminar_evento(request, evento_id):
+    evento = Evento.objects.get(id=evento_id)
+    if request.method == 'POST':
+        evento.delete()
+        return redirect('gestion:calendario')
+    contexto = {'evento': evento}
+    return render(request, 'gestion/eliminar_evento.html', contexto)
