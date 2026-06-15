@@ -1,0 +1,58 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SalasMan — Agregar sala</title>
+  <link rel="stylesheet" href="{% static 'gestion/css/crear_evento.css' %}">
+</head>
+<body>
+  <header class="cabecera">
+    <div class="cabecera__titulo">
+      <img src="{% static 'gestion/img/logo.png' %}" alt="Logo" class="cabecera__logo">
+      <p class="cabecera__semana">Agregar sala</p>
+    </div>
+    <nav class="cabecera__acciones">
+      <a class="btn btn--secundario" href="{% url 'gestion:admin_salas' %}">← Volver a salas</a>
+    </nav>
+  </header>
+
+  <main class="contenedor">
+    <form method="post" class="formulario">
+      {% csrf_token %}
+
+      {% if errores %}
+      <div class="formulario__errores">
+        {% for campo, mensajes in errores.items %}
+        {% for mensaje in mensajes %}
+        <p class="error">{{ mensaje }}</p>
+        {% endfor %}
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      <div class="formulario__grupo">
+        <label for="nombre">Nombre de la sala</label>
+        <input type="text" id="nombre" name="nombre" required maxlength="100">
+      </div>
+
+      <div class="formulario__grupo">
+        <label for="tipo">Tipo de sala</label>
+        <select id="tipo" name="tipo" required>
+          {% for valor, etiqueta in tipos %}
+          <option value="{{ valor }}">{{ etiqueta }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="formulario__grupo">
+        <label for="capacidad">Capacidad (personas)</label>
+        <input type="number" id="capacidad" name="capacidad" min="1" value="40" required>
+      </div>
+
+      <button type="submit">Guardar sala</button>
+    </form>
+  </main>
+</body>
+</html>

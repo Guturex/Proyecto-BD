@@ -20,6 +20,7 @@
     </div>
     <nav class="cabecera__acciones">
       <a class="btn btn--secundario" href="{% url 'gestion:lista_incidencias' %}">Incidencias</a>
+      <a class="btn btn--secundario" href="{% url 'gestion:admin_salas' %}">Salas</a>
       <a class="btn btn--secundario" href="?semana={{ semana_previa }}">← Semana anterior</a>
       {% if desplazamiento != 0 %}
       <a class="btn btn--primario" href="?semana=0">Hoy</a>

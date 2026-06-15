@@ -1,7 +1,7 @@
 from datetime import date, timedelta
 from django.shortcuts import render, redirect
 from django.contrib.auth import authenticate, login, logout
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib import messages
 from .models import Sala, Evento
 from .models import Sala, Evento, ReglaRecurrencia, ServicioAdicional
@@ -387,3 +387,65 @@ def eliminar_evento(request, evento_id):
         return redirect('gestion:calendario')
     contexto = {'evento': evento}
     return render(request, 'gestion/eliminar_evento.html', contexto)
+
+
+# -----------------------------------------
+#  10. ADMINISTRACIÓN DE SALAS
+# -----------------------------------------
+
+@login_required(login_url='gestion:login')
+def admin_salas(request):
+    salas = Sala.objects.all().order_by('nombre')
+    contexto = {
+        'salas': salas,
+        'puede_agregar': request.user.is_superuser,
+    }
+    return render(request, 'gestion/admin_salas.html', contexto)
+
+
+@login_required(login_url='gestion:login')
+@user_passes_test(lambda u: u.is_superuser, login_url='gestion:admin_salas')
+def crear_sala(request):
+    tipos = Sala.TipoSala.choices
+
+    if request.method == 'POST':
+        try:
+            sala = Sala(
+                nombre=request.POST.get('nombre'),
+                tipo=request.POST.get('tipo'),
+                capacidad=request.POST.get('capacidad'),
+            )
+            sala.full_clean()
+            sala.save()
+            messages.success(request, f'Sala "{sala.nombre}" creada correctamente.')
+            return redirect('gestion:admin_salas')
+        except Exception as e:
+            errores = e.message_dict if hasattr(e, 'message_dict') else {'error': [str(e)]}
+            return render(request, 'gestion/crear_sala.html', {'tipos': tipos, 'errores': errores})
+
+    return render(request, 'gestion/crear_sala.html', {'tipos': tipos})
+
+
+@login_required(login_url='gestion:login')
+@user_passes_test(lambda u: u.is_superuser, login_url='gestion:admin_salas')
+def eliminar_sala(request, sala_id):
+    sala = Sala.objects.get(id=sala_id)
+    num_incidencias = sala.incidentes.count()
+    num_eventos = sala.eventos.count()
+
+    if request.method == 'POST':
+        nombre = sala.nombre
+        sala.delete()
+        msg = f'Sala "{nombre}" eliminada correctamente.'
+        if num_incidencias:
+            msg += f' Se eliminaron {num_incidencias} incidencia(s) asociada(s) en cascada.'
+        messages.success(request, msg)
+        return redirect('gestion:admin_salas')
+
+    contexto = {
+        'sala': sala,
+        'num_incidencias': num_incidencias,
+        'num_eventos': num_eventos,
+        'hay_cascada': num_incidencias > 0,
+    }
+    return render(request, 'gestion/eliminar_sala.html', contexto)
