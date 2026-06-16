@@ -63,7 +63,10 @@
           <th>Tipo</th>
           <th>Evento</th>
           <th>Descripción</th>
-          <th>Acciones</th> </tr>
+          {% if user.is_superuser %}
+          <th>Acciones</th>
+          {% endif %}
+        </tr>
       </thead>
       <tbody>
         {% for incidencia in incidencias %}
@@ -73,6 +76,7 @@
           <td>{{ incidencia.get_tipo_display }}</td>
           <td>{{ incidencia.evento.nombre_evento|default:"—" }}</td>
           <td>{{ incidencia.descripcion }}</td>
+          {% if user.is_superuser %}
           <td>
             <div class="acciones-tabla">
               <a href="{% url 'gestion:editar_incidencia' incidencia.id %}" class="btn-pequeno btn-editar">Editar</a>
@@ -83,6 +87,7 @@
               </form>
             </div>
           </td>
+          {% endif %}
         </tr>
         {% endfor %}
       </tbody>

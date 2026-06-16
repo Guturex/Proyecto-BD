@@ -450,11 +450,12 @@ def eliminar_sala(request, sala_id):
     }
     return render(request, 'gestion/eliminar_sala.html', contexto)
 
-    # -----------------------------------------
+# -----------------------------------------
 #  11. EDITAR INCIDENCIA
 # -----------------------------------------
 
 @login_required(login_url='gestion:login')
+@user_passes_test(lambda u: u.is_superuser, login_url='gestion:lista_incidencias')
 def editar_incidencia(request, incidencia_id):
     incidencia = Incidente.objects.select_related('sala', 'evento').get(id=incidencia_id)
     salas = Sala.objects.all().order_by('nombre')
@@ -485,11 +486,11 @@ def editar_incidencia(request, incidencia_id):
 # -----------------------------------------
 
 @login_required(login_url='gestion:login')
+@user_passes_test(lambda u: u.is_superuser, login_url='gestion:lista_incidencias')
 def eliminar_incidencia(request, incidencia_id):
     incidencia = Incidente.objects.get(id=incidencia_id)
     if request.method == 'POST':
         incidencia.delete()
         return redirect('gestion:lista_incidencias')
         
-    # Por seguridad, si se accede por GET, redirige a la lista
     return redirect('gestion:lista_incidencias')
