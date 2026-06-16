@@ -142,7 +142,7 @@ def vista_login(request):
 
 def vista_logout(request):
     logout(request)
-    return redirect('gestion:login')
+    return redirect('gestion:calendario')
 
 
 # -----------------------------------------
@@ -160,7 +160,7 @@ Solo muestra eventos con estado CONFIRMADO.
 Requiere que el administrador tenga sesión activa.
 '''
 
-@login_required(login_url='gestion:login')
+#@login_required(login_url='gestion:login')
 def calendario(request):
     desplazamiento = int(request.GET.get('semana', 0))
     dias           = obtener_semana(desplazamiento)

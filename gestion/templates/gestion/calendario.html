@@ -13,25 +13,35 @@
 <body>
   <header class="cabecera">
     <div class="cabecera__titulo">
-      <!-- <h1>Calendario de salas</h1> -->
       <img src="{% static 'gestion/img/logo.png' %}" alt="Logo" class="cabecera__logo">
       <p>Hoy es {% now "D d E Y" %}</p>
       <p class="cabecera__semana">{{ etiqueta_semana }}</p>
     </div>
     <nav class="cabecera__acciones">
+      {% if user.is_authenticated %}
       <a class="btn btn--secundario" href="{% url 'gestion:lista_incidencias' %}">Incidencias</a>
+      {% endif %}
+      
       {% if user.is_staff %}
       <a class="btn btn--secundario" href="{% url 'gestion:admin_salas' %}">Salas</a>
       {% endif %}
+      
       <a class="btn btn--secundario" href="?semana={{ semana_previa }}">← Semana anterior</a>
       {% if desplazamiento != 0 %}
       <a class="btn btn--primario" href="?semana=0">Hoy</a>
       {% endif %}
       <a class="btn btn--secundario" href="?semana={{ semana_siguiente }}">Semana siguiente →</a>
+      
       {% if user.is_staff %}
       <a class="btn btn--primario" href="{% url 'gestion:crear_evento' %}">+ Nuevo evento</a>
       {% endif %}
+      
+      {% if user.is_authenticated %}
       <a class="btn btn--secundario" href="{% url 'gestion:logout' %}">Cerrar sesión</a>
+      {% else %}
+      <a class="btn btn--primario" href="{% url 'gestion:login' %}">Iniciar sesión</a>
+      {% endif %}
+      
     </nav>
   </header>
 
@@ -74,7 +84,6 @@
                   <span class="evento__responsable">{{ celda.evento.nombre_responsable }}</span>
                 </article>
               </a>
-              
               {% endif %}
             </td>
             {% endif %}
