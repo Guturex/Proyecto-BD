@@ -449,3 +449,47 @@ def eliminar_sala(request, sala_id):
         'hay_cascada': num_incidencias > 0,
     }
     return render(request, 'gestion/eliminar_sala.html', contexto)
+
+    # -----------------------------------------
+#  11. EDITAR INCIDENCIA
+# -----------------------------------------
+
+@login_required(login_url='gestion:login')
+def editar_incidencia(request, incidencia_id):
+    incidencia = Incidente.objects.select_related('sala', 'evento').get(id=incidencia_id)
+    salas = Sala.objects.all().order_by('nombre')
+    eventos = Evento.objects.all().order_by('-fecha')
+
+    if request.method == 'POST':
+        try:
+            sala_id = request.POST.get('sala')
+            evento_id = request.POST.get('evento')
+
+            incidencia.sala_id = sala_id
+            incidencia.evento_id = evento_id if evento_id else None
+            incidencia.tipo = request.POST.get('tipo')
+            incidencia.descripcion = request.POST.get('descripcion')
+
+            incidencia.save()
+            return redirect('gestion:lista_incidencias')
+        except Exception as e:
+            contexto = {'incidencia': incidencia, 'salas': salas, 'eventos': eventos, 'error': str(e)}
+            return render(request, 'gestion/editar_incidencia.html', contexto)
+
+    contexto = {'incidencia': incidencia, 'salas': salas, 'eventos': eventos}
+    return render(request, 'gestion/editar_incidencia.html', contexto)
+
+
+# -----------------------------------------
+#  12. ELIMINAR INCIDENCIA
+# -----------------------------------------
+
+@login_required(login_url='gestion:login')
+def eliminar_incidencia(request, incidencia_id):
+    incidencia = Incidente.objects.get(id=incidencia_id)
+    if request.method == 'POST':
+        incidencia.delete()
+        return redirect('gestion:lista_incidencias')
+        
+    # Por seguridad, si se accede por GET, redirige a la lista
+    return redirect('gestion:lista_incidencias')
