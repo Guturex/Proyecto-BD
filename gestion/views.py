@@ -219,6 +219,50 @@ def crear_evento(request):
         salas_ids = request.POST.getlist('salas')
         notas = request.POST.get('notas')
 
+        # --- VALIDACIÓN 1: SALAS OBLIGATORIAS ---
+        if not salas_ids:
+            contexto = {
+                'salas': salas, 
+                'errores': {'salas': ['Por favor, selecciona al menos una sala para el evento.']}
+            }
+            return render(request, 'gestion/crear_evento.html', contexto)
+        # ----------------------------------------
+
+        # --- VALIDACIÓN 2: CAPACIDAD DE SALAS ---
+        try:
+            asistentes_int = int(num_asistentes)
+        except (ValueError, TypeError):
+            asistentes_int = 0
+
+        # Buscamos las salas seleccionadas en la base de datos y sumamos su capacidad
+        salas_seleccionadas = Sala.objects.filter(id__in=salas_ids)
+        capacidad_total = sum(sala.capacidad for sala in salas_seleccionadas)
+
+        if asistentes_int > capacidad_total:
+            contexto = {
+                'salas': salas, 
+                'errores': {'asistentes': [f'El número de asistentes ({asistentes_int}) excede la capacidad máxima de las salas seleccionadas ({capacidad_total} personas).']}
+            }
+            return render(request, 'gestion/crear_evento.html', contexto)
+        # ----------------------------------------
+
+        # --- VALIDACIÓN 3: EMPALME DE HORARIOS ---
+        conflictos = Evento.objects.filter(
+            fecha=fecha,
+            salas__id__in=salas_ids,
+            estado='CONFIRMADO',
+            hora_inicio__lt=hora_fin,
+            hora_fin__gt=hora_inicio
+        )
+
+        if conflictos.exists():
+            contexto = {
+                'salas': salas, 
+                'errores': {'horario': ['El horario se empalma con otro evento ya agendado en la(s) sala(s) seleccionada(s).']}
+            }
+            return render(request, 'gestion/crear_evento.html', contexto)
+        # -----------------------------------------
+
         try:
             evento = Evento(
                 nombre_evento=nombre_evento,
@@ -257,6 +301,7 @@ def crear_evento(request):
 
     contexto = {'salas': salas}
     return render(request, 'gestion/crear_evento.html', contexto)
+
 # -----------------------------------------
 #  5. LISTA DE INCIDENCIAS
 # -----------------------------------------
@@ -336,18 +381,72 @@ def editar_evento(request, evento_id):
     salas = Sala.objects.all().order_by('nombre')
 
     if request.method == 'POST':
+        salas_ids = request.POST.getlist('salas')
+
+        # --- VALIDACIÓN 1: SALAS OBLIGATORIAS ---
+        if not salas_ids:
+            contexto = {
+                'evento': evento,
+                'salas': salas, 
+                'errores': {'salas': ['No puedes dejar un evento sin sala. Selecciona al menos una.']}
+            }
+            return render(request, 'gestion/editar_evento.html', contexto)
+        # ----------------------------------------
+
+        # Extraemos los datos del POST para las siguientes validaciones y guardado
+        num_asistentes_post = request.POST.get('num_asistentes')
+        fecha_post = request.POST.get('fecha')
+        hora_inicio_post = request.POST.get('hora_inicio')
+        hora_fin_post = request.POST.get('hora_fin')
+
+        # --- VALIDACIÓN 2: CAPACIDAD DE SALAS ---
+        try:
+            asistentes_int = int(num_asistentes_post)
+        except (ValueError, TypeError):
+            asistentes_int = 0
+
+        salas_seleccionadas = Sala.objects.filter(id__in=salas_ids)
+        capacidad_total = sum(sala.capacidad for sala in salas_seleccionadas)
+
+        if asistentes_int > capacidad_total:
+            contexto = {
+                'evento': evento,
+                'salas': salas, 
+                'errores': {'asistentes': [f'El número de asistentes ({asistentes_int}) excede la capacidad máxima de las salas seleccionadas ({capacidad_total} personas).']}
+            }
+            return render(request, 'gestion/editar_evento.html', contexto)
+        # ----------------------------------------
+
+        # --- VALIDACIÓN 3: EMPALME DE HORARIOS ---
+        conflictos = Evento.objects.filter(
+            fecha=fecha_post,
+            salas__id__in=salas_ids,
+            estado='CONFIRMADO',
+            hora_inicio__lt=hora_fin_post,
+            hora_fin__gt=hora_inicio_post
+        ).exclude(id=evento.id) # EXCLUIR EL EVENTO ACTUAL
+
+        if conflictos.exists():
+            contexto = {
+                'evento': evento,
+                'salas': salas, 
+                'errores': {'horario': ['El nuevo horario se empalma con otro evento confirmado en esa sala.']}
+            }
+            return render(request, 'gestion/editar_evento.html', contexto)
+        # -----------------------------------------
+
         try:
             evento.nombre_evento = request.POST.get('nombre_evento')
             evento.nombre_responsable = request.POST.get('nombre_responsable')
             evento.correo_responsable = request.POST.get('correo_responsable')
-            evento.num_asistentes = request.POST.get('num_asistentes')
-            evento.fecha = request.POST.get('fecha')
-            evento.hora_inicio = request.POST.get('hora_inicio')
-            evento.hora_fin = request.POST.get('hora_fin')
+            evento.num_asistentes = num_asistentes_post
+            evento.fecha = fecha_post
+            evento.hora_inicio = hora_inicio_post
+            evento.hora_fin = hora_fin_post
             evento.notas = request.POST.get('notas')
             evento.full_clean()
             evento.save()
-            evento.salas.set(request.POST.getlist('salas'))
+            evento.salas.set(salas_ids)
 
             recurrencia = request.POST.get('recurrencia')
             fecha_fin_serie = request.POST.get('fecha_fin_serie')
@@ -369,7 +468,8 @@ def editar_evento(request, evento_id):
             return render(request, 'gestion/editar_evento.html', contexto)
 
     contexto = {'evento': evento, 'salas': salas}
-    return render(request, 'gestion/editar_evento.html', contexto)  
+    return render(request, 'gestion/editar_evento.html', contexto)
+  
 # -----------------------------------------
 #  9. ELIMINAR EVENTO
 # -----------------------------------------
