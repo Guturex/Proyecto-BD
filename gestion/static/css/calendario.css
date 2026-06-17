@@ -370,6 +370,13 @@ body {
 .celda--ocupada {
   padding: 4px;
   background: transparent;
+  height: 1px; 
+}
+
+.celda--ocupada a {
+  display: block;
+  height: 100%;
+  text-decoration: none;
 }
 
 /* =============================================
