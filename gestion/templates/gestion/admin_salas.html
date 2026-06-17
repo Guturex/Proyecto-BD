@@ -1,0 +1,73 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SalasMan — Administración de salas</title>
+  <link rel="stylesheet" href="{% static 'gestion/css/crear_evento.css' %}">
+</head>
+
+<body>
+  
+  <header class="cabecera">
+    <div class="cabecera__titulo">
+      <img src="{% static 'gestion/img/logo.png' %}" alt="Logo" class="cabecera__logo">
+      <p class="cabecera__semana">Administración de salas</p>
+    </div>
+    <nav class="cabecera__acciones">
+      {% if puede_agregar %}
+      <a class="btn btn--primario" href="{% url 'gestion:crear_sala' %}">+ Agregar sala</a>
+      {% endif %}
+      <a class="btn btn--secundario" href="{% url 'gestion:calendario' %}">← Volver al calendario</a>
+    </nav>
+  </header>
+
+  <main class="contenedor contenedor--ancho">
+    {% if messages %}
+    <div class="formulario__errores formulario__errores--exito">
+      {% for message in messages %}
+      <p class="exito">{{ message }}</p>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if salas %}
+    <table class="tabla">
+      <thead>
+        <tr>
+          <th>Nombre</th>
+          <th>Tipo</th>
+          <th>Capacidad</th>
+          {% if puede_agregar %}
+          <th>Acciones</th>
+          {% endif %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for sala in salas %}
+        <tr>
+          <td>{{ sala.nombre }}</td>
+          <td>{{ sala.get_tipo_display }}</td>
+          <td>{{ sala.capacidad }} personas</td>
+          {% if puede_agregar %}
+          <td>
+            <a class="btn-eliminar-tabla" href="{% url 'gestion:eliminar_sala' sala.id %}">Eliminar</a>
+          </td>
+          {% endif %}
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p class="vacio">No hay salas registradas.</p>
+    {% endif %}
+
+    {% if not puede_agregar %}
+    <p class="aviso-permisos">Solo los superusuarios pueden agregar nuevas salas.</p>
+    {% endif %}
+  </main>
+</body>
+
+</html>

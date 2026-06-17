@@ -1,0 +1,56 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SalasMan — Eliminar sala</title>
+  <link rel="stylesheet" href="{% static 'gestion/css/crear_evento.css' %}">
+</head>
+
+<body>
+  
+  <header class="cabecera">
+    <div class="cabecera__titulo">
+      <img src="{% static 'gestion/img/logo.png' %}" alt="Logo" class="cabecera__logo">
+      <p class="cabecera__semana">Eliminar sala</p>
+    </div>
+    <nav class="cabecera__acciones">
+      <a class="btn btn--secundario" href="{% url 'gestion:admin_salas' %}">← Volver a salas</a>
+    </nav>
+  </header>
+
+  <main class="contenedor">
+    <div class="formulario">
+      <p style="font-size: 15px; color: #0F172A;">
+        ¿Estás seguro de que deseas eliminar la sala <strong>{{ sala.nombre }}</strong>?
+        Esta acción no se puede deshacer.
+      </p>
+
+      {% if hay_cascada %}
+      <div class="aviso-cascada">
+        <p class="aviso-cascada__titulo">Advertencia: eliminaciones en cascada</p>
+        <p>Al eliminar esta sala también se eliminarán permanentemente:</p>
+        <ul>
+          <li><strong>{{ num_incidencias }}</strong> incidencia{{ num_incidencias|pluralize }} registrada{{ num_incidencias|pluralize:"s" }} en esta sala</li>
+        </ul>
+      </div>
+      {% endif %}
+
+      {% if num_eventos %}
+      <p style="font-size: 14px; color: #64748b;">
+        {{ num_eventos }} evento{{ num_eventos|pluralize }} dejará{{ num_eventos|pluralize:"n" }} de estar asociado{{ num_eventos|pluralize:"s" }} a esta sala (no se eliminarán).
+      </p>
+      {% endif %}
+
+      <form method="post" style="display: flex; gap: 12px; margin-top: 8px;">
+        {% csrf_token %}
+        <button type="submit" class="btn-eliminar">Sí, eliminar</button>
+        <a class="btn btn--secundario" href="{% url 'gestion:admin_salas' %}">Cancelar</a>
+      </form>
+    </div>
+  </main>
+</body>
+
+</html>

@@ -25,6 +25,15 @@ class SalaAdmin(admin.ModelAdmin):
     list_filter = ('tipo',)
     search_fields = ('nombre',)
 
+    def has_add_permission(self, request):
+        return request.user.is_superuser
+
+    def has_change_permission(self, request, obj=None):
+        return request.user.is_superuser
+
+    def has_delete_permission(self, request, obj=None):
+        return request.user.is_superuser
+
 
 # -----------------------------------------
 #  2. SERVICIOS e INCIDENTES (para agregar desde el formulario del Evento)
