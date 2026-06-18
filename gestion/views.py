@@ -1,4 +1,4 @@
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime
 from django.shortcuts import render, redirect
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required, user_passes_test
@@ -6,6 +6,7 @@ from django.contrib import messages
 from .models import Sala, Evento
 from .models import Sala, Evento, ReglaRecurrencia, ServicioAdicional
 from .models import Sala, Evento, ReglaRecurrencia, ServicioAdicional, Incidente
+import copy
 
 '''
 Vistas principales del sistema SalasMan.
@@ -166,15 +167,46 @@ def calendario(request):
     dias           = obtener_semana(desplazamiento)
     salas          = Sala.objects.all().order_by('nombre')
 
-    eventos = (
-        Evento.objects
-        .filter(fecha__range=[dias[0], dias[-1]], estado='CONFIRMADO')
-        .prefetch_related('salas')
-    )
+    eventos_simples = Evento.objects.filter(
+        fecha__range=[dias[0], dias[-1]],
+        estado='CONFIRMADO',
+        regla_recurrencia__isnull=True
+    ).prefetch_related('salas')
 
-    filas = construir_cuadricula(dias, salas, eventos)
 
-    # Armar lista de días con nombre en español y fecha formateada
+    eventos_recurrentes_base = Evento.objects.filter(
+        estado='CONFIRMADO',
+        regla_recurrencia__isnull=False,
+        fecha__lte=dias[-1],
+        regla_recurrencia__fecha_fin_serie__gte=dias[0]
+    ).prefetch_related('salas', 'regla_recurrencia')
+
+    eventos_totales = list(eventos_simples)
+
+    for evento in eventos_recurrentes_base:
+        regla = evento.regla_recurrencia
+        
+        for dia in dias:
+            if dia < evento.fecha or dia > regla.fecha_fin_serie:
+                continue
+            
+            coincide = False
+            if regla.tipo == 'DIARIA':
+                coincide = True 
+            elif regla.tipo == 'SEMANAL' and dia.weekday() == evento.fecha.weekday():
+                coincide = True
+            elif regla.tipo == 'MENSUAL' and dia.day == evento.fecha.day:
+                coincide = True
+            elif regla.tipo == 'ANUAL' and dia.day == evento.fecha.day and dia.month == evento.fecha.month:
+                coincide = True
+            
+            if coincide:
+                clon = copy.copy(evento)
+                clon.fecha = dia
+                eventos_totales.append(clon)
+
+    filas = construir_cuadricula(dias, salas, eventos_totales)
+
     datos_dias = [
         {
             'fecha':     d,
@@ -247,7 +279,10 @@ def crear_evento(request):
         # ----------------------------------------
 
         # --- VALIDACIÓN 3: EMPALME DE HORARIOS ---
-        conflictos = Evento.objects.filter(
+        fecha_obj = datetime.strptime(fecha, '%Y-%m-%d').date()
+
+        # A) Buscar empalmes directos (eventos físicos agendados ese mismo día)
+        conflictos_directos = Evento.objects.filter(
             fecha=fecha,
             salas__id__in=salas_ids,
             estado='CONFIRMADO',
@@ -255,10 +290,40 @@ def crear_evento(request):
             hora_fin__gt=hora_inicio
         )
 
-        if conflictos.exists():
+        empalme_encontrado = conflictos_directos.exists()
+
+        # B) Buscar empalmes virtuales (eventos recurrentes que "caen" en este día)
+        if not empalme_encontrado:
+            potenciales_recurrentes = Evento.objects.filter(
+                salas__id__in=salas_ids,
+                estado='CONFIRMADO',
+                hora_inicio__lt=hora_fin,
+                hora_fin__gt=hora_inicio,
+                regla_recurrencia__isnull=False,
+                fecha__lte=fecha, # El evento original empezó hoy o antes
+                regla_recurrencia__fecha_fin_serie__gte=fecha # La serie termina hoy o después
+            ).select_related('regla_recurrencia')
+
+            # Evaluamos matemáticamente si la regla cae en el día que el usuario seleccionó
+            for evento_rec in potenciales_recurrentes:
+                regla = evento_rec.regla_recurrencia
+                if regla.tipo == 'DIARIA':
+                    empalme_encontrado = True
+                    break
+                elif regla.tipo == 'SEMANAL' and fecha_obj.weekday() == evento_rec.fecha.weekday():
+                    empalme_encontrado = True
+                    break
+                elif regla.tipo == 'MENSUAL' and fecha_obj.day == evento_rec.fecha.day:
+                    empalme_encontrado = True
+                    break
+                elif regla.tipo == 'ANUAL' and fecha_obj.day == evento_rec.fecha.day and fecha_obj.month == evento_rec.fecha.month:
+                    empalme_encontrado = True
+                    break
+
+        if empalme_encontrado:
             contexto = {
                 'salas': salas, 
-                'errores': {'horario': ['El horario se empalma con otro evento ya agendado en la(s) sala(s) seleccionada(s).']}
+                'errores': {'horario': ['El horario se empalma con otro evento (o recurrencia) ya agendado en la(s) sala(s) seleccionada(s).']}
             }
             return render(request, 'gestion/crear_evento.html', contexto)
         # -----------------------------------------
@@ -418,19 +483,51 @@ def editar_evento(request, evento_id):
         # ----------------------------------------
 
         # --- VALIDACIÓN 3: EMPALME DE HORARIOS ---
-        conflictos = Evento.objects.filter(
+        fecha_obj = datetime.strptime(fecha_post, '%Y-%m-%d').date()
+
+        # A) Buscar empalmes directos excluyendo el evento actual
+        conflictos_directos = Evento.objects.filter(
             fecha=fecha_post,
             salas__id__in=salas_ids,
             estado='CONFIRMADO',
             hora_inicio__lt=hora_fin_post,
             hora_fin__gt=hora_inicio_post
-        ).exclude(id=evento.id) # EXCLUIR EL EVENTO ACTUAL
+        ).exclude(id=evento.id) # EXCLUIMOS EL EVENTO ACTUAL
 
-        if conflictos.exists():
+        empalme_encontrado = conflictos_directos.exists()
+
+        # B) Buscar empalmes virtuales excluyendo el evento actual
+        if not empalme_encontrado:
+            potenciales_recurrentes = Evento.objects.filter(
+                salas__id__in=salas_ids,
+                estado='CONFIRMADO',
+                hora_inicio__lt=hora_fin_post,
+                hora_fin__gt=hora_inicio_post,
+                regla_recurrencia__isnull=False,
+                fecha__lte=fecha_post,
+                regla_recurrencia__fecha_fin_serie__gte=fecha_post
+            ).exclude(id=evento.id).select_related('regla_recurrencia') # EXCLUIMOS EL EVENTO ACTUAL
+
+            for evento_rec in potenciales_recurrentes:
+                regla = evento_rec.regla_recurrencia
+                if regla.tipo == 'DIARIA':
+                    empalme_encontrado = True
+                    break
+                elif regla.tipo == 'SEMANAL' and fecha_obj.weekday() == evento_rec.fecha.weekday():
+                    empalme_encontrado = True
+                    break
+                elif regla.tipo == 'MENSUAL' and fecha_obj.day == evento_rec.fecha.day:
+                    empalme_encontrado = True
+                    break
+                elif regla.tipo == 'ANUAL' and fecha_obj.day == evento_rec.fecha.day and fecha_obj.month == evento_rec.fecha.month:
+                    empalme_encontrado = True
+                    break
+
+        if empalme_encontrado:
             contexto = {
                 'evento': evento,
                 'salas': salas, 
-                'errores': {'horario': ['El nuevo horario se empalma con otro evento confirmado en esa sala.']}
+                'errores': {'horario': ['El nuevo horario se empalma con otro evento (o recurrencia) confirmado en esa sala.']}
             }
             return render(request, 'gestion/editar_evento.html', contexto)
         # -----------------------------------------
