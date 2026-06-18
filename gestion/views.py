@@ -1,11 +1,12 @@
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime
 from django.shortcuts import render, redirect
 from django.contrib.auth import authenticate, login, logout
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib import messages
 from .models import Sala, Evento
 from .models import Sala, Evento, ReglaRecurrencia, ServicioAdicional
 from .models import Sala, Evento, ReglaRecurrencia, ServicioAdicional, Incidente
+import copy
 
 '''
 Vistas principales del sistema SalasMan.
@@ -142,7 +143,7 @@ def vista_login(request):
 
 def vista_logout(request):
     logout(request)
-    return redirect('gestion:login')
+    return redirect('gestion:calendario')
 
 
 # -----------------------------------------
@@ -160,21 +161,52 @@ Solo muestra eventos con estado CONFIRMADO.
 Requiere que el administrador tenga sesión activa.
 '''
 
-@login_required(login_url='gestion:login')
+#@login_required(login_url='gestion:login')
 def calendario(request):
     desplazamiento = int(request.GET.get('semana', 0))
     dias           = obtener_semana(desplazamiento)
     salas          = Sala.objects.all().order_by('nombre')
 
-    eventos = (
-        Evento.objects
-        .filter(fecha__range=[dias[0], dias[-1]], estado='CONFIRMADO')
-        .prefetch_related('salas')
-    )
+    eventos_simples = Evento.objects.filter(
+        fecha__range=[dias[0], dias[-1]],
+        estado='CONFIRMADO',
+        regla_recurrencia__isnull=True
+    ).prefetch_related('salas')
 
-    filas = construir_cuadricula(dias, salas, eventos)
 
-    # Armar lista de días con nombre en español y fecha formateada
+    eventos_recurrentes_base = Evento.objects.filter(
+        estado='CONFIRMADO',
+        regla_recurrencia__isnull=False,
+        fecha__lte=dias[-1],
+        regla_recurrencia__fecha_fin_serie__gte=dias[0]
+    ).prefetch_related('salas', 'regla_recurrencia')
+
+    eventos_totales = list(eventos_simples)
+
+    for evento in eventos_recurrentes_base:
+        regla = evento.regla_recurrencia
+        
+        for dia in dias:
+            if dia < evento.fecha or dia > regla.fecha_fin_serie:
+                continue
+            
+            coincide = False
+            if regla.tipo == 'DIARIA':
+                coincide = True 
+            elif regla.tipo == 'SEMANAL' and dia.weekday() == evento.fecha.weekday():
+                coincide = True
+            elif regla.tipo == 'MENSUAL' and dia.day == evento.fecha.day:
+                coincide = True
+            elif regla.tipo == 'ANUAL' and dia.day == evento.fecha.day and dia.month == evento.fecha.month:
+                coincide = True
+            
+            if coincide:
+                clon = copy.copy(evento)
+                clon.fecha = dia
+                eventos_totales.append(clon)
+
+    filas = construir_cuadricula(dias, salas, eventos_totales)
+
     datos_dias = [
         {
             'fecha':     d,
@@ -219,6 +251,83 @@ def crear_evento(request):
         salas_ids = request.POST.getlist('salas')
         notas = request.POST.get('notas')
 
+        # --- VALIDACIÓN 1: SALAS OBLIGATORIAS ---
+        if not salas_ids:
+            contexto = {
+                'salas': salas, 
+                'errores': {'salas': ['Por favor, selecciona al menos una sala para el evento.']}
+            }
+            return render(request, 'gestion/crear_evento.html', contexto)
+        # ----------------------------------------
+
+        # --- VALIDACIÓN 2: CAPACIDAD DE SALAS ---
+        try:
+            asistentes_int = int(num_asistentes)
+        except (ValueError, TypeError):
+            asistentes_int = 0
+
+        # Buscamos las salas seleccionadas en la base de datos y sumamos su capacidad
+        salas_seleccionadas = Sala.objects.filter(id__in=salas_ids)
+        capacidad_total = sum(sala.capacidad for sala in salas_seleccionadas)
+
+        if asistentes_int > capacidad_total:
+            contexto = {
+                'salas': salas, 
+                'errores': {'asistentes': [f'El número de asistentes ({asistentes_int}) excede la capacidad máxima de las salas seleccionadas ({capacidad_total} personas).']}
+            }
+            return render(request, 'gestion/crear_evento.html', contexto)
+        # ----------------------------------------
+
+        # --- VALIDACIÓN 3: EMPALME DE HORARIOS ---
+        fecha_obj = datetime.strptime(fecha, '%Y-%m-%d').date()
+
+        # A) Buscar empalmes directos (eventos físicos agendados ese mismo día)
+        conflictos_directos = Evento.objects.filter(
+            fecha=fecha,
+            salas__id__in=salas_ids,
+            estado='CONFIRMADO',
+            hora_inicio__lt=hora_fin,
+            hora_fin__gt=hora_inicio
+        )
+
+        empalme_encontrado = conflictos_directos.exists()
+
+        # B) Buscar empalmes virtuales (eventos recurrentes que "caen" en este día)
+        if not empalme_encontrado:
+            potenciales_recurrentes = Evento.objects.filter(
+                salas__id__in=salas_ids,
+                estado='CONFIRMADO',
+                hora_inicio__lt=hora_fin,
+                hora_fin__gt=hora_inicio,
+                regla_recurrencia__isnull=False,
+                fecha__lte=fecha, # El evento original empezó hoy o antes
+                regla_recurrencia__fecha_fin_serie__gte=fecha # La serie termina hoy o después
+            ).select_related('regla_recurrencia')
+
+            # Evaluamos matemáticamente si la regla cae en el día que el usuario seleccionó
+            for evento_rec in potenciales_recurrentes:
+                regla = evento_rec.regla_recurrencia
+                if regla.tipo == 'DIARIA':
+                    empalme_encontrado = True
+                    break
+                elif regla.tipo == 'SEMANAL' and fecha_obj.weekday() == evento_rec.fecha.weekday():
+                    empalme_encontrado = True
+                    break
+                elif regla.tipo == 'MENSUAL' and fecha_obj.day == evento_rec.fecha.day:
+                    empalme_encontrado = True
+                    break
+                elif regla.tipo == 'ANUAL' and fecha_obj.day == evento_rec.fecha.day and fecha_obj.month == evento_rec.fecha.month:
+                    empalme_encontrado = True
+                    break
+
+        if empalme_encontrado:
+            contexto = {
+                'salas': salas, 
+                'errores': {'horario': ['El horario se empalma con otro evento (o recurrencia) ya agendado en la(s) sala(s) seleccionada(s).']}
+            }
+            return render(request, 'gestion/crear_evento.html', contexto)
+        # -----------------------------------------
+
         try:
             evento = Evento(
                 nombre_evento=nombre_evento,
@@ -257,6 +366,7 @@ def crear_evento(request):
 
     contexto = {'salas': salas}
     return render(request, 'gestion/crear_evento.html', contexto)
+
 # -----------------------------------------
 #  5. LISTA DE INCIDENCIAS
 # -----------------------------------------
@@ -336,18 +446,104 @@ def editar_evento(request, evento_id):
     salas = Sala.objects.all().order_by('nombre')
 
     if request.method == 'POST':
+        salas_ids = request.POST.getlist('salas')
+
+        # --- VALIDACIÓN 1: SALAS OBLIGATORIAS ---
+        if not salas_ids:
+            contexto = {
+                'evento': evento,
+                'salas': salas, 
+                'errores': {'salas': ['No puedes dejar un evento sin sala. Selecciona al menos una.']}
+            }
+            return render(request, 'gestion/editar_evento.html', contexto)
+        # ----------------------------------------
+
+        # Extraemos los datos del POST para las siguientes validaciones y guardado
+        num_asistentes_post = request.POST.get('num_asistentes')
+        fecha_post = request.POST.get('fecha')
+        hora_inicio_post = request.POST.get('hora_inicio')
+        hora_fin_post = request.POST.get('hora_fin')
+
+        # --- VALIDACIÓN 2: CAPACIDAD DE SALAS ---
+        try:
+            asistentes_int = int(num_asistentes_post)
+        except (ValueError, TypeError):
+            asistentes_int = 0
+
+        salas_seleccionadas = Sala.objects.filter(id__in=salas_ids)
+        capacidad_total = sum(sala.capacidad for sala in salas_seleccionadas)
+
+        if asistentes_int > capacidad_total:
+            contexto = {
+                'evento': evento,
+                'salas': salas, 
+                'errores': {'asistentes': [f'El número de asistentes ({asistentes_int}) excede la capacidad máxima de las salas seleccionadas ({capacidad_total} personas).']}
+            }
+            return render(request, 'gestion/editar_evento.html', contexto)
+        # ----------------------------------------
+
+        # --- VALIDACIÓN 3: EMPALME DE HORARIOS ---
+        fecha_obj = datetime.strptime(fecha_post, '%Y-%m-%d').date()
+
+        # A) Buscar empalmes directos excluyendo el evento actual
+        conflictos_directos = Evento.objects.filter(
+            fecha=fecha_post,
+            salas__id__in=salas_ids,
+            estado='CONFIRMADO',
+            hora_inicio__lt=hora_fin_post,
+            hora_fin__gt=hora_inicio_post
+        ).exclude(id=evento.id) # EXCLUIMOS EL EVENTO ACTUAL
+
+        empalme_encontrado = conflictos_directos.exists()
+
+        # B) Buscar empalmes virtuales excluyendo el evento actual
+        if not empalme_encontrado:
+            potenciales_recurrentes = Evento.objects.filter(
+                salas__id__in=salas_ids,
+                estado='CONFIRMADO',
+                hora_inicio__lt=hora_fin_post,
+                hora_fin__gt=hora_inicio_post,
+                regla_recurrencia__isnull=False,
+                fecha__lte=fecha_post,
+                regla_recurrencia__fecha_fin_serie__gte=fecha_post
+            ).exclude(id=evento.id).select_related('regla_recurrencia') # EXCLUIMOS EL EVENTO ACTUAL
+
+            for evento_rec in potenciales_recurrentes:
+                regla = evento_rec.regla_recurrencia
+                if regla.tipo == 'DIARIA':
+                    empalme_encontrado = True
+                    break
+                elif regla.tipo == 'SEMANAL' and fecha_obj.weekday() == evento_rec.fecha.weekday():
+                    empalme_encontrado = True
+                    break
+                elif regla.tipo == 'MENSUAL' and fecha_obj.day == evento_rec.fecha.day:
+                    empalme_encontrado = True
+                    break
+                elif regla.tipo == 'ANUAL' and fecha_obj.day == evento_rec.fecha.day and fecha_obj.month == evento_rec.fecha.month:
+                    empalme_encontrado = True
+                    break
+
+        if empalme_encontrado:
+            contexto = {
+                'evento': evento,
+                'salas': salas, 
+                'errores': {'horario': ['El nuevo horario se empalma con otro evento (o recurrencia) confirmado en esa sala.']}
+            }
+            return render(request, 'gestion/editar_evento.html', contexto)
+        # -----------------------------------------
+
         try:
             evento.nombre_evento = request.POST.get('nombre_evento')
             evento.nombre_responsable = request.POST.get('nombre_responsable')
             evento.correo_responsable = request.POST.get('correo_responsable')
-            evento.num_asistentes = request.POST.get('num_asistentes')
-            evento.fecha = request.POST.get('fecha')
-            evento.hora_inicio = request.POST.get('hora_inicio')
-            evento.hora_fin = request.POST.get('hora_fin')
+            evento.num_asistentes = num_asistentes_post
+            evento.fecha = fecha_post
+            evento.hora_inicio = hora_inicio_post
+            evento.hora_fin = hora_fin_post
             evento.notas = request.POST.get('notas')
             evento.full_clean()
             evento.save()
-            evento.salas.set(request.POST.getlist('salas'))
+            evento.salas.set(salas_ids)
 
             recurrencia = request.POST.get('recurrencia')
             fecha_fin_serie = request.POST.get('fecha_fin_serie')
@@ -369,7 +565,8 @@ def editar_evento(request, evento_id):
             return render(request, 'gestion/editar_evento.html', contexto)
 
     contexto = {'evento': evento, 'salas': salas}
-    return render(request, 'gestion/editar_evento.html', contexto)  
+    return render(request, 'gestion/editar_evento.html', contexto)
+  
 # -----------------------------------------
 #  9. ELIMINAR EVENTO
 # -----------------------------------------
@@ -387,3 +584,110 @@ def eliminar_evento(request, evento_id):
         return redirect('gestion:calendario')
     contexto = {'evento': evento}
     return render(request, 'gestion/eliminar_evento.html', contexto)
+
+
+# -----------------------------------------
+#  10. ADMINISTRACIÓN DE SALAS
+# -----------------------------------------
+
+@login_required(login_url='gestion:login')
+def admin_salas(request):
+    salas = Sala.objects.all().order_by('nombre')
+    contexto = {
+        'salas': salas,
+        'puede_agregar': request.user.is_superuser,
+    }
+    return render(request, 'gestion/admin_salas.html', contexto)
+
+
+@login_required(login_url='gestion:login')
+@user_passes_test(lambda u: u.is_superuser, login_url='gestion:admin_salas')
+def crear_sala(request):
+    tipos = Sala.TipoSala.choices
+
+    if request.method == 'POST':
+        try:
+            sala = Sala(
+                nombre=request.POST.get('nombre'),
+                tipo=request.POST.get('tipo'),
+                capacidad=request.POST.get('capacidad'),
+            )
+            sala.full_clean()
+            sala.save()
+            messages.success(request, f'Sala "{sala.nombre}" creada correctamente.')
+            return redirect('gestion:admin_salas')
+        except Exception as e:
+            errores = e.message_dict if hasattr(e, 'message_dict') else {'error': [str(e)]}
+            return render(request, 'gestion/crear_sala.html', {'tipos': tipos, 'errores': errores})
+
+    return render(request, 'gestion/crear_sala.html', {'tipos': tipos})
+
+
+@login_required(login_url='gestion:login')
+@user_passes_test(lambda u: u.is_superuser, login_url='gestion:admin_salas')
+def eliminar_sala(request, sala_id):
+    sala = Sala.objects.get(id=sala_id)
+    num_incidencias = sala.incidentes.count()
+    num_eventos = sala.eventos.count()
+
+    if request.method == 'POST':
+        nombre = sala.nombre
+        sala.delete()
+        msg = f'Sala "{nombre}" eliminada correctamente.'
+        if num_incidencias:
+            msg += f' Se eliminaron {num_incidencias} incidencia(s) asociada(s) en cascada.'
+        messages.success(request, msg)
+        return redirect('gestion:admin_salas')
+
+    contexto = {
+        'sala': sala,
+        'num_incidencias': num_incidencias,
+        'num_eventos': num_eventos,
+        'hay_cascada': num_incidencias > 0,
+    }
+    return render(request, 'gestion/eliminar_sala.html', contexto)
+
+# -----------------------------------------
+#  11. EDITAR INCIDENCIA
+# -----------------------------------------
+
+@login_required(login_url='gestion:login')
+@user_passes_test(lambda u: u.is_superuser, login_url='gestion:lista_incidencias')
+def editar_incidencia(request, incidencia_id):
+    incidencia = Incidente.objects.select_related('sala', 'evento').get(id=incidencia_id)
+    salas = Sala.objects.all().order_by('nombre')
+    eventos = Evento.objects.all().order_by('-fecha')
+
+    if request.method == 'POST':
+        try:
+            sala_id = request.POST.get('sala')
+            evento_id = request.POST.get('evento')
+
+            incidencia.sala_id = sala_id
+            incidencia.evento_id = evento_id if evento_id else None
+            incidencia.tipo = request.POST.get('tipo')
+            incidencia.descripcion = request.POST.get('descripcion')
+
+            incidencia.save()
+            return redirect('gestion:lista_incidencias')
+        except Exception as e:
+            contexto = {'incidencia': incidencia, 'salas': salas, 'eventos': eventos, 'error': str(e)}
+            return render(request, 'gestion/editar_incidencia.html', contexto)
+
+    contexto = {'incidencia': incidencia, 'salas': salas, 'eventos': eventos}
+    return render(request, 'gestion/editar_incidencia.html', contexto)
+
+
+# -----------------------------------------
+#  12. ELIMINAR INCIDENCIA
+# -----------------------------------------
+
+@login_required(login_url='gestion:login')
+@user_passes_test(lambda u: u.is_superuser, login_url='gestion:lista_incidencias')
+def eliminar_incidencia(request, incidencia_id):
+    incidencia = Incidente.objects.get(id=incidencia_id)
+    if request.method == 'POST':
+        incidencia.delete()
+        return redirect('gestion:lista_incidencias')
+        
+    return redirect('gestion:lista_incidencias')

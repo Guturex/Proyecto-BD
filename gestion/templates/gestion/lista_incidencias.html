@@ -1,13 +1,47 @@
 {% load static %}
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>SalasMan — Incidencias</title>
   <link rel="stylesheet" href="{% static 'gestion/css/crear_evento.css' %}">
+  <style>
+    .acciones-tabla {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+    }
+    .btn-pequeno {
+        padding: 5px 10px;
+        font-size: 0.85em;
+        text-decoration: none;
+        border-radius: 4px;
+        cursor: pointer;
+        border: none;
+        font-family: inherit;
+    }
+    .btn-editar {
+        background-color: #ecf0f1;
+        color: #2c3e50;
+        border: 1px solid #bdc3c7;
+    }
+    .btn-editar:hover {
+        background-color: #bdc3c7;
+    }
+    .btn-eliminar {
+        background-color: #e74c3c;
+        color: white;
+    }
+    .btn-eliminar:hover {
+        background-color: #c0392b;
+    }
+  </style>
 </head>
+
 <body>
+  
   <header class="cabecera">
     <div class="cabecera__titulo">
       <img src="{% static 'gestion/img/logo.png' %}" alt="Logo" class="cabecera__logo">
@@ -29,6 +63,9 @@
           <th>Tipo</th>
           <th>Evento</th>
           <th>Descripción</th>
+          {% if user.is_superuser %}
+          <th>Acciones</th>
+          {% endif %}
         </tr>
       </thead>
       <tbody>
@@ -39,6 +76,18 @@
           <td>{{ incidencia.get_tipo_display }}</td>
           <td>{{ incidencia.evento.nombre_evento|default:"—" }}</td>
           <td>{{ incidencia.descripcion }}</td>
+          {% if user.is_superuser %}
+          <td>
+            <div class="acciones-tabla">
+              <a href="{% url 'gestion:editar_incidencia' incidencia.id %}" class="btn-pequeno btn-editar">Editar</a>
+              
+              <form method="post" action="{% url 'gestion:eliminar_incidencia' incidencia.id %}" onsubmit="return confirm('¿Estás seguro de que deseas eliminar esta incidencia de manera permanente?');" style="margin: 0;">
+                {% csrf_token %}
+                <button type="submit" class="btn-pequeno btn-eliminar">Eliminar</button>
+              </form>
+            </div>
+          </td>
+          {% endif %}
         </tr>
         {% endfor %}
       </tbody>
@@ -48,4 +97,5 @@
     {% endif %}
   </main>
 </body>
+
 </html>

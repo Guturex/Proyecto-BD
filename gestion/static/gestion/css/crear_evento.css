@@ -63,10 +63,89 @@ body {
   background: #e2e8f0;
 }
 
+.btn--primario {
+  background: #2563eb;
+  color: #ffffff;
+}
+
+.btn--primario:hover {
+  background: #1d4ed8;
+}
+
 .contenedor {
   max-width: 640px;
   margin: 40px auto;
   padding: 0 20px;
+}
+
+.contenedor--ancho {
+  max-width: 900px;
+}
+
+.aviso-permisos {
+  margin-top: 20px;
+  text-align: center;
+  color: #64748b;
+  font-size: 13px;
+}
+
+.aviso-cascada {
+  background-color: #fef3c7;
+  color: #92400e;
+  padding: 14px 16px;
+  border-radius: 6px;
+  font-size: 13px;
+  border: 1px solid #fcd34d;
+}
+
+.aviso-cascada__titulo {
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.aviso-cascada ul {
+  margin: 8px 0 0 18px;
+  padding: 0;
+}
+
+.btn-eliminar {
+  padding: 12px 16px;
+  background-color: #dc2626;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.btn-eliminar:hover {
+  background-color: #b91c1c;
+}
+
+.btn-eliminar-tabla {
+  font-size: 13px;
+  font-weight: 600;
+  color: #dc2626;
+  text-decoration: none;
+}
+
+.btn-eliminar-tabla:hover {
+  text-decoration: underline;
+}
+
+.formulario__errores--exito {
+  margin-bottom: 20px;
+}
+
+.exito {
+  background-color: #dcfce7;
+  color: #166534;
+  padding: 10px 14px;
+  border-radius: 6px;
+  font-size: 13px;
+  border: 1px solid #86efac;
 }
 
 .formulario {

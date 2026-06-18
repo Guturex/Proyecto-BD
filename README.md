@@ -97,3 +97,7 @@ python manage.py migrate
 ```
 
 * No subas el archivo `.env` a GitHub.
+
+
+---
+*Nota: Este proyecto fue desarrollado integrando asistencia de IA generativa para la resolución de errores y optimización de código, manteniendo el control de versiones y el diseño de la arquitectura por parte de los desarrolladores.*
