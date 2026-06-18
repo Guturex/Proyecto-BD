@@ -7,6 +7,41 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>SalasMan — Crear evento</title>
   <link rel="stylesheet" href="{% static 'gestion/css/crear_evento.css' %}">
+  <style>
+    .formulario__restricciones {
+        background-color: #fcf8e3;
+        border-left: 5px solid #f0ad4e;
+        color: #8a6d3b;
+        padding: 15px 20px;
+        margin-bottom: 25px;
+        border-radius: 4px;
+    }
+
+    .restricciones__titulo {
+        margin-top: 0;
+        margin-bottom: 10px;
+        font-size: 1.1rem;
+        font-weight: bold;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .restricciones__lista {
+        margin: 0;
+        padding-left: 20px;
+        font-size: 0.95rem;
+        line-height: 1.5;
+    }
+
+    .restricciones__lista li {
+        margin-bottom: 6px;
+    }
+
+    .restricciones__lista li:last-child {
+        margin-bottom: 0;
+    }
+  </style>
 </head>
 <body>
 
@@ -33,6 +68,17 @@
       {% endfor %}
       </div>
       {% endif %}
+
+      <div class="formulario__restricciones">
+        <h3 class="restricciones__titulo">⚠️ Lineamientos para la Reserva de Salas</h3>
+        <ul class="restricciones__lista">
+          <li><strong>Días operativos:</strong> Los eventos únicamente pueden agendarse de <strong>lunes a viernes</strong>.</li>
+          <li><strong>Rango de horario:</strong> El bloque permitido para actividades es de <strong>8:00 a.m. a 7:00 p.m.</strong> (La hora de inicio debe ser anterior a la hora de fin).</li>
+          <li><strong>Control de aforo:</strong> El número de asistentes ingresado no debe superar la capacidad máxima total de la(s) sala(s) seleccionada(s).</li>
+          <li><strong>Conflictos de agenda:</strong> El sistema no permitirá guardar el evento si el horario se empalma con otra actividad confirmada en la misma sala.</li>
+        </ul>
+      </div>
+
       <div class="formulario__grupo">
         <label for="nombre_evento">Nombre del evento</label>
         <input type="text" id="nombre_evento" name="nombre_evento" required>
@@ -87,42 +133,43 @@
       </div>
     
       <div class="formulario__grupo">
-  <label>Recurrencia</label>
-  <select id="recurrencia" name="recurrencia">
-    <option value="">Sin recurrencia</option>
-    <option value="DIARIA">Diaria</option>
-    <option value="SEMANAL">Semanal</option>
-    <option value="MENSUAL">Mensual</option>
-    <option value="ANUAL">Anual</option>
-  </select>
-</div>
+        <label>Recurrencia</label>
+        <select id="recurrencia" name="recurrencia">
+          <option value="">Sin recurrencia</option>
+          <option value="DIARIA">Diaria</option>
+          <option value="SEMANAL">Semanal</option>
+          <option value="MENSUAL">Mensual</option>
+          <option value="ANUAL">Anual</option>
+        </select>
+      </div>
 
-<div class="formulario__grupo">
-  <label for="fecha_fin_serie">Fecha fin de recurrencia</label>
-  <input type="date" id="fecha_fin_serie" name="fecha_fin_serie">
-</div>
+      <div class="formulario__grupo">
+        <label for="fecha_fin_serie">Fecha fin de recurrencia</label>
+        <input type="date" id="fecha_fin_serie" name="fecha_fin_serie">
+      </div>
 
-<div class="formulario__grupo">
-  <label>Servicios adicionales</label>
-  <div class="formulario__salas">
-    <label class="formulario__sala">
-      <input type="checkbox" name="servicios" value="ACOMODO">
-      Acomodo de mobiliario
-    </label>
-    <label class="formulario__sala">
-      <input type="checkbox" name="servicios" value="SONIDO">
-      Equipo de sonido
-    </label>
-    <label class="formulario__sala">
-      <input type="checkbox" name="servicios" value="CAFETERIA">
-      Cafetería
-    </label>
-    <label class="formulario__sala">
-      <input type="checkbox" name="servicios" value="VIDEOCONF">
-      Videoconferencia
-    </label>
-  </div>
-</div>
+      <div class="formulario__grupo">
+        <label>Servicios adicionales</label>
+        <div class="formulario__salas">
+          <label class="formulario__sala">
+            <input type="checkbox" name="servicios" value="ACOMODO">
+            Acomodo de mobiliario
+          </label>
+          <label class="formulario__sala">
+            <input type="checkbox" name="servicios" value="SONIDO">
+            Equipo de sonido
+          </label>
+          <label class="formulario__sala">
+            <input type="checkbox" name="servicios" value="CAFETERIA">
+            Cafetería
+          </label>
+          <label class="formulario__sala">
+            <input type="checkbox" name="servicios" value="VIDEOCONF">
+            Videoconferencia
+          </label>
+        </div>
+      </div>
+      
       <button type="submit">Guardar evento</button>
     </form>
   </main>
