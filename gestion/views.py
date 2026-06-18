@@ -255,7 +255,9 @@ def crear_evento(request):
         if not salas_ids:
             contexto = {
                 'salas': salas, 
-                'errores': {'salas': ['Por favor, selecciona al menos una sala para el evento.']}
+                'errores': {'salas': ['Por favor, selecciona al menos una sala para el evento.']},
+                'datos': request.POST,
+                'salas_seleccionadas': [int(s) for s in salas_ids],
             }
             return render(request, 'gestion/crear_evento.html', contexto)
         # ----------------------------------------
@@ -266,14 +268,15 @@ def crear_evento(request):
         except (ValueError, TypeError):
             asistentes_int = 0
 
-        # Buscamos las salas seleccionadas en la base de datos y sumamos su capacidad
-        salas_seleccionadas = Sala.objects.filter(id__in=salas_ids)
-        capacidad_total = sum(sala.capacidad for sala in salas_seleccionadas)
+        salas_seleccionadas_obj = Sala.objects.filter(id__in=salas_ids)
+        capacidad_total = sum(sala.capacidad for sala in salas_seleccionadas_obj)
 
         if asistentes_int > capacidad_total:
             contexto = {
                 'salas': salas, 
-                'errores': {'asistentes': [f'El número de asistentes ({asistentes_int}) excede la capacidad máxima de las salas seleccionadas ({capacidad_total} personas).']}
+                'errores': {'asistentes': [f'El número de asistentes ({asistentes_int}) excede la capacidad máxima de las salas seleccionadas ({capacidad_total} personas).']},
+                'datos': request.POST,
+                'salas_seleccionadas': [int(s) for s in salas_ids],
             }
             return render(request, 'gestion/crear_evento.html', contexto)
         # ----------------------------------------
@@ -281,7 +284,6 @@ def crear_evento(request):
         # --- VALIDACIÓN 3: EMPALME DE HORARIOS ---
         fecha_obj = datetime.strptime(fecha, '%Y-%m-%d').date()
 
-        # A) Buscar empalmes directos (eventos físicos agendados ese mismo día)
         conflictos_directos = Evento.objects.filter(
             fecha=fecha,
             salas__id__in=salas_ids,
@@ -292,7 +294,6 @@ def crear_evento(request):
 
         empalme_encontrado = conflictos_directos.exists()
 
-        # B) Buscar empalmes virtuales (eventos recurrentes que "caen" en este día)
         if not empalme_encontrado:
             potenciales_recurrentes = Evento.objects.filter(
                 salas__id__in=salas_ids,
@@ -300,11 +301,10 @@ def crear_evento(request):
                 hora_inicio__lt=hora_fin,
                 hora_fin__gt=hora_inicio,
                 regla_recurrencia__isnull=False,
-                fecha__lte=fecha, # El evento original empezó hoy o antes
-                regla_recurrencia__fecha_fin_serie__gte=fecha # La serie termina hoy o después
+                fecha__lte=fecha,
+                regla_recurrencia__fecha_fin_serie__gte=fecha
             ).select_related('regla_recurrencia')
 
-            # Evaluamos matemáticamente si la regla cae en el día que el usuario seleccionó
             for evento_rec in potenciales_recurrentes:
                 regla = evento_rec.regla_recurrencia
                 if regla.tipo == 'DIARIA':
@@ -323,7 +323,9 @@ def crear_evento(request):
         if empalme_encontrado:
             contexto = {
                 'salas': salas, 
-                'errores': {'horario': ['El horario se empalma con otro evento (o recurrencia) ya agendado en la(s) sala(s) seleccionada(s).']}
+                'errores': {'horario': ['El horario se empalma con otro evento (o recurrencia) ya agendado en la(s) sala(s) seleccionada(s).']},
+                'datos': request.POST,
+                'salas_seleccionadas': [int(s) for s in salas_ids],
             }
             return render(request, 'gestion/crear_evento.html', contexto)
         # -----------------------------------------
@@ -361,7 +363,7 @@ def crear_evento(request):
 
             return redirect('gestion:calendario')
         except Exception as e:
-            contexto = {'salas': salas, 'errores': e.message_dict if hasattr(e, 'message_dict') else {'error': [str(e)]}}
+            contexto = {'salas': salas, 'errores': e.message_dict if hasattr(e, 'message_dict') else {'error': [str(e)]}, 'datos': request.POST, 'salas_seleccionadas': [int(s) for s in salas_ids],}
             return render(request, 'gestion/crear_evento.html', contexto)
 
     contexto = {'salas': salas}
