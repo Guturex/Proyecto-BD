@@ -405,6 +405,17 @@ def crear_incidencia(request):
             tipo = request.POST.get('tipo')
             descripcion = request.POST.get('descripcion')
 
+            if evento_id:
+                evento_obj = Evento.objects.get(id=evento_id)
+                # Si la sala seleccionada no está dentro de las salas del evento:
+                if not evento_obj.salas.filter(id=sala_id).exists():
+                    contexto = {
+                        'salas': salas, 
+                        'eventos': eventos, 
+                        'error': 'Error: El evento seleccionado no se llevó a cabo en la sala indicada.'
+                    }
+                    return render(request, 'gestion/crear_incidencia.html', contexto)
+
             incidencia = Incidente(
                 sala_id=sala_id,
                 evento_id=evento_id if evento_id else None,
@@ -664,6 +675,18 @@ def editar_incidencia(request, incidencia_id):
         try:
             sala_id = request.POST.get('sala')
             evento_id = request.POST.get('evento')
+
+            if evento_id:
+                evento_obj = Evento.objects.get(id=evento_id)
+                # Si la sala seleccionada no está dentro de las salas del evento:
+                if not evento_obj.salas.filter(id=sala_id).exists():
+                    contexto = {
+                        'incidencia': incidencia,
+                        'salas': salas, 
+                        'eventos': eventos, 
+                        'error': 'Error: El evento seleccionado no se llevó a cabo en la sala indicada.'
+                    }
+                    return render(request, 'gestion/editar_incidencia.html', contexto)
 
             incidencia.sala_id = sala_id
             incidencia.evento_id = evento_id if evento_id else None

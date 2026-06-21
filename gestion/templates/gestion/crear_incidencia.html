@@ -46,7 +46,9 @@
         <select id="evento" name="evento">
           <option value="">Sin evento</option>
           {% for evento in eventos %}
-          <option value="{{ evento.id }}">{{ evento.nombre_evento }} — {{ evento.fecha }}</option>
+          <option value="{{ evento.id }}" data-salas="{% for s in evento.salas.all %}{{ s.id }},{% endfor %}">
+            {{ evento.nombre_evento }} — {{ evento.fecha }}
+          </option>
           {% endfor %}
         </select>
       </div>
@@ -69,6 +71,43 @@
       <button type="submit">Guardar incidencia</button>
     </form>
   </main>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const salaSelect = document.getElementById('sala');
+      const eventoSelect = document.getElementById('evento');
+      const eventoOptions = Array.from(eventoSelect.options);
+
+      salaSelect.addEventListener('change', function() {
+        const salaSeleccionada = this.value;
+        const eventoActual = eventoSelect.value; // Guardamos lo que el usuario ya seleccionó
+        let elEventoPlanteadoSigueSabiendoValido = false;
+
+        eventoOptions.forEach(option => {
+          if (option.value === '') return;
+
+          const salasDelEvento = option.getAttribute('data-salas');
+          
+          // Verificar si la opción es válida para la sala seleccionada
+          if (!salaSeleccionada || salasDelEvento.includes(salaSeleccionada + ',')) {
+            option.style.display = '';
+            
+            // Si este es el evento que ya estaba seleccionado, marcamos que sigue siendo válido
+            if (option.value === eventoActual) {
+              elEventoPlanteadoSigueSabiendoValido = true;
+            }
+          } else {
+            option.style.display = 'none';
+          }
+        });
+
+        // Solo si el evento previo YA NO es válido en esta sala, reiniciamos el selector
+        if (!elEventoPlanteadoSigueSabiendoValido) {
+          eventoSelect.value = '';
+        }
+      });
+    });
+  </script>
 </body>
 
 </html>
