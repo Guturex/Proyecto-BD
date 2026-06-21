@@ -43,7 +43,6 @@
 
   <main class="contenedor">
     
-    <!-- Editar incidencia -->
     <form method="post" class="formulario">
       {% csrf_token %}
 
@@ -70,7 +69,7 @@
         <select id="evento" name="evento">
           <option value="">Sin evento</option>
           {% for evento in eventos %}
-          <option value="{{ evento.id }}" {% if incidencia.evento and incidencia.evento.id == evento.id %}selected{% endif %}>
+          <option value="{{ evento.id }}" data-salas="{% for s in evento.salas.all %}{{ s.id }},{% endfor %}" {% if incidencia.evento and incidencia.evento.id == evento.id %}selected{% endif %}>
             {{ evento.nombre_evento }} — {{ evento.fecha }}
           </option>
           {% endfor %}
@@ -95,7 +94,6 @@
       <button type="submit" class="btn btn--primario">Actualizar incidencia</button>
     </form>
 
-    <!-- Eliminar incidencia -->
     <form method="post" action="{% url 'gestion:eliminar_incidencia' incidencia.id %}" style="margin-top: 20px; text-align: right;">
         {% csrf_token %}
         <button type="submit" class="btn btn--peligro" onclick="return confirm('¿Estás seguro de que deseas eliminar esta incidencia de manera permanente?');">
@@ -104,6 +102,50 @@
     </form>
 
   </main>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const salaSelect = document.getElementById('sala');
+      const eventoSelect = document.getElementById('evento');
+      const eventoOptions = Array.from(eventoSelect.options);
+
+      function filtrarEventos(ejecutadoPorCambioManual = false) {
+        const salaSeleccionada = salaSelect.value;
+        const eventoActual = eventoSelect.value; // Guardamos la selección actual
+        let elEventoPlanteadoSigueSabiendoValido = false;
+
+        eventoOptions.forEach(option => {
+          if (option.value === '') return;
+
+          const salasDelEvento = option.getAttribute('data-salas');
+          
+          if (!salaSeleccionada || salasDelEvento.includes(salaSeleccionada + ',')) {
+            option.style.display = '';
+            
+            if (option.value === eventoActual) {
+              elEventoPlanteadoSigueSabiendoValido = true;
+            }
+          } else {
+            option.style.display = 'none';
+          }
+        });
+
+        // Al cargar la página por primera vez NO borramos nada.
+        // Si el usuario cambió la sala manualmente, evaluamos si hay que borrarlo o dejarlo.
+        if (ejecutadoPorCambioManual && !elEventoPlanteadoSigueSabiendoValido) {
+          eventoSelect.value = '';
+        }
+      }
+
+      // 1. Ejecutar al iniciar (mantiene lo que traiga la base de datos)
+      filtrarEventos(false);
+
+      // 2. Ejecutar cuando el usuario interactúe y cambie la sala
+      salaSelect.addEventListener('change', function() {
+        filtrarEventos(true);
+      });
+    });
+  </script>
 </body>
 
 </html>
