@@ -102,7 +102,7 @@ class EventoAdmin(admin.ModelAdmin):
         'estado',
     )
 
-    list_filter = ('estado', 'fecha', 'salas')
+    list_filter = ('estado', 'fecha',)
     search_fields = ('nombre_evento', 'nombre_responsable', 'correo_responsable')
     date_hierarchy = 'fecha'   # Navegador por fecha arriba de la lista
     ordering = ['fecha', 'hora_inicio']
