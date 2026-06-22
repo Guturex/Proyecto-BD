@@ -87,11 +87,11 @@ class Evento(models.Model):
     # Salas asignadas al evento (un evento puede ocupar varias salas)
     # Ahora usa modelo intermedio
     
-    # salas = models.ManyToManyField(
-    #     Sala, 
-    #     through='EventoSala', 
-    #     related_name='eventos'
-    # )
+    salas = models.ManyToManyField(
+        Sala, 
+        through='EventoSala', 
+        related_name='eventos'
+    )
 
     # Notas adicionales del admin
     notas = models.TextField(blank=True)
