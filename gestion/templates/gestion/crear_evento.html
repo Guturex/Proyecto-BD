@@ -116,13 +116,28 @@
       </div>
 
       <div class="formulario__grupo">
-        <label>Salas</label>
+        <label>Salas y Acomodo</label>
         <div class="formulario__salas">
           {% for sala in salas %}
-          <label class="formulario__sala">
-            <input type="checkbox" name="salas" value="{{ sala.id }}" {% if sala.id in salas_seleccionadas %}checked{% endif %}>
-            {{ sala.nombre }}
-          </label>
+          <div class="formulario__sala-item" style="display: flex; align-items: center; gap: 15px; margin-bottom: 10px;">
+            <label class="formulario__sala" style="min-width: 150px;">
+              <input type="checkbox" name="salas" value="{{ sala.id }}" {% if sala.id in salas_seleccionadas or sala in evento.salas.all %}checked{% endif %}>
+              {{ sala.nombre }}
+            </label>
+            
+            <select name="acomodo_{{ sala.id }}" style="padding: 5px; border-radius: 4px; border: 1px solid #ccc;">
+              <option value="">-- Seleccionar Acomodo --</option>
+              {% for acomodo in acomodos %}
+              <option value="{{ acomodo.id }}" 
+                  {% for evt_sala in evento.eventosala_set.all %}
+                      {% if evt_sala.sala_id == sala.id and evt_sala.acomodo_id == acomodo.id %}selected{% endif %}
+                  {% endfor %}
+              >
+                {{ acomodo.nombre }}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
           {% endfor %}
         </div>
       </div>

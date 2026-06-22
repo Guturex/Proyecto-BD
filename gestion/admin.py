@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.utils.html import format_html
-from .models import Sala, Evento, ReglaRecurrencia, ServicioAdicional, Incidente
+from .models import Sala, Evento, ReglaRecurrencia, ServicioAdicional, Incidente, Acomodo, EventoSala
 
 '''
 Registro de modelos en el admin de Django para gestionar Salas, Eventos, Reglas 
@@ -64,9 +64,20 @@ class ReglaRecurrenciaInline(admin.StackedInline):
     extra = 0
     fields = ('tipo', 'fecha_fin_serie')
 
+# ----------------------------------------- 
+#  3. ACOMODO
+# -----------------------------------------
+
+@admin.register(Acomodo)
+class AcomodoAdmin(admin.ModelAdmin):
+    list_display = ('nombre',)
+
+class EventoSalaInline(admin.TabularInline):
+    model = EventoSala
+    extra = 1
 
 # -----------------------------------------
-#  3. EVENTO  
+#  4. EVENTO  
 # -----------------------------------------
 
 '''
@@ -109,17 +120,13 @@ class EventoAdmin(admin.ModelAdmin):
         ('Fecha y Horario', {
             'fields': ('fecha', 'hora_inicio', 'hora_fin')
         }),
-        ('Salas Asignadas', {           
-            'fields': ('salas',),
-            'description': 'Selecciona 1 sala (≤40 asistentes), 2 salas (41–80) o 3 salas (81–120).'
-        }),
         ('Notas', {
             'fields': ('notas',),
             'classes': ('collapse',)  
         }),
     )
 
-    inlines = [ReglaRecurrenciaInline, ServicioAdicionalInline, IncidenteInline]
+    inlines = [ReglaRecurrenciaInline, ServicioAdicionalInline, IncidenteInline, EventoSalaInline]
 
     def salas_asignadas(self, obj):
         salas = obj.salas.all()
@@ -130,7 +137,7 @@ class EventoAdmin(admin.ModelAdmin):
 
 
 # -----------------------------------------
-#  4. INCIDENTES (para reportar problemas en las salas)
+#  5. INCIDENTES (para reportar problemas en las salas)
 #    Se pueden agregar desde el formulario del Evento o aquí directamente
 # -----------------------------------------
 
@@ -151,7 +158,7 @@ class IncidenteAdmin(admin.ModelAdmin):
 
 
 # ----------------------------------------- 
-#  5. TÍTULO DEL PANEL
+#  6. TÍTULO DEL PANEL
 # -----------------------------------------
 
 admin.site.site_header = 'SalasMan — Administración'
