@@ -78,8 +78,8 @@ body {
 }
 
 .cabecera__logo {
-  max-height: 32px;
-  max-width: 90px;
+  max-height: 80px;
+  max-width: auto;
   width: auto;
   object-fit: contain;
 }

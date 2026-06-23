@@ -37,6 +37,12 @@
     .btn-eliminar:hover {
         background-color: #c0392b;
     }
+    .cabecera__logo {
+      max-height: 80px;
+      max-width: 300px;
+      width: auto;
+      object-fit: contain;
+    }
   </style>
 </head>
 
@@ -44,7 +50,7 @@
   
   <header class="cabecera">
     <div class="cabecera__titulo">
-      <img src="{% static 'gestion/img/logo.png' %}" alt="Logo" class="cabecera__logo">
+      <img src="{% static 'gestion/img/logo_nuevo.png' %}" alt="Logo" class="cabecera__logo">
       <p class="cabecera__semana">Incidencias</p>
     </div>
     <nav class="cabecera__acciones">
