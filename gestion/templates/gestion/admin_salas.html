@@ -7,13 +7,21 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>SalasMan — Administración de salas</title>
   <link rel="stylesheet" href="{% static 'gestion/css/crear_evento.css' %}">
+  <style>
+    .cabecera__logo {
+      max-height: 80px;
+      max-width: 300px;
+      width: auto;
+      object-fit: contain;
+    }
+  </style>
 </head>
 
 <body>
   
   <header class="cabecera">
     <div class="cabecera__titulo">
-      <img src="{% static 'gestion/img/logo.png' %}" alt="Logo" class="cabecera__logo">
+      <img src="{% static 'gestion/img/logo_nuevo.png' %}" alt="Logo" class="cabecera__logo">
       <p class="cabecera__semana">Administración de salas</p>
     </div>
     <nav class="cabecera__acciones">
