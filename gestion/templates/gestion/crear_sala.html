@@ -41,15 +41,6 @@
       </div>
 
       <div class="formulario__grupo">
-        <label for="tipo">Tipo de sala</label>
-        <select id="tipo" name="tipo" required>
-          {% for valor, etiqueta in tipos %}
-          <option value="{{ valor }}">{{ etiqueta }}</option>
-          {% endfor %}
-        </select>
-      </div>
-
-      <div class="formulario__grupo">
         <label for="capacidad">Capacidad (personas)</label>
         <input type="number" id="capacidad" name="capacidad" min="1" value="40" required>
       </div>

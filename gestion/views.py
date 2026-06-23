@@ -643,13 +643,11 @@ def admin_salas(request):
 @login_required(login_url='gestion:login')
 @user_passes_test(lambda u: u.is_superuser, login_url='gestion:admin_salas')
 def crear_sala(request):
-    tipos = Sala.TipoSala.choices
 
     if request.method == 'POST':
         try:
             sala = Sala(
                 nombre=request.POST.get('nombre'),
-                tipo=request.POST.get('tipo'),
                 capacidad=request.POST.get('capacidad'),
             )
             sala.full_clean()
@@ -658,9 +656,9 @@ def crear_sala(request):
             return redirect('gestion:admin_salas')
         except Exception as e:
             errores = e.message_dict if hasattr(e, 'message_dict') else {'error': [str(e)]}
-            return render(request, 'gestion/crear_sala.html', {'tipos': tipos, 'errores': errores})
+            return render(request, 'gestion/crear_sala.html', {'errores': errores})
 
-    return render(request, 'gestion/crear_sala.html', {'tipos': tipos})
+    return render(request, 'gestion/crear_sala.html')
 
 
 @login_required(login_url='gestion:login')
