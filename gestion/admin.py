@@ -33,7 +33,6 @@ class SalaAdmin(admin.ModelAdmin):
     def has_delete_permission(self, request, obj=None):
         return request.user.is_superuser
 
-
 # -----------------------------------------
 #  2. SERVICIOS e INCIDENTES (para agregar desde el formulario del Evento)
 # -----------------------------------------
@@ -50,13 +49,11 @@ class ServicioAdicionalInline(admin.TabularInline):
     extra = 1  
     fields = ('tipo', 'notas')
 
-
 class IncidenteInline(admin.TabularInline):
     model = Incidente
     extra = 0   # Solo muestra incidentes existentes, no filas vacías
     fields = ('sala', 'tipo', 'descripcion', 'fecha')
     readonly_fields = ('fecha',)
-
 
 class ReglaRecurrenciaInline(admin.StackedInline):
     model = ReglaRecurrencia
@@ -134,7 +131,6 @@ class EventoAdmin(admin.ModelAdmin):
         return ', '.join([s.nombre for s in salas])
     salas_asignadas.short_description = 'Salas'
 
-
 # -----------------------------------------
 #  5. INCIDENTES (para reportar problemas en las salas)
 #    Se pueden agregar desde el formulario del Evento o aquí directamente
@@ -154,7 +150,6 @@ class IncidenteAdmin(admin.ModelAdmin):
     list_filter = ('tipo', 'sala', 'fecha')
     search_fields = ('descripcion',)
     readonly_fields = ('fecha',)
-
 
 # ----------------------------------------- 
 #  6. TÍTULO DEL PANEL
