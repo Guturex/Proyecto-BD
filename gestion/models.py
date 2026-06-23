@@ -38,7 +38,7 @@ class Sala(models.Model):
     capacidad = models.PositiveIntegerField(default=40)
 
     def __str__(self):
-        return f"{self.nombre} ({self.get_tipo_display()})"
+        return f"{self.nombre}"
 
     class Meta:
         verbose_name = 'Sala'
