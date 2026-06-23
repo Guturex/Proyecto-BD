@@ -29,23 +29,16 @@ o falla técnica.
 class Sala(models.Model):
     '''
     Representa una sala disponible para eventos. Cada sala tiene un nombre, 
-    tipo (aula, auditorio, herradura), capacidad máxima y puede estar asociada 
-    a múltiples eventos a lo largo del tiempo. La capacidad se utiliza para 
-    validar que el número de asistentes de un evento no exceda la capacidad de 
-    la sala asignada. 
+    y una capacidad máxima y puede estar asociada a múltiples eventos a lo
+    largo del tiempo. La capacidad se utiliza para validar que el número de
+    asistentes de un evento no exceda la capacidad de la sala asignada. 
     '''
 
-    class TipoSala(models.TextChoices):
-        AULA = 'AULA', 'Aula (Sillas y mesas)'
-        AUDITORIO = 'AUDITORIO', 'Auditorio (Sillas)'
-        HERRADURA = 'HERRADURA', 'Herradura (Configuración en U)'
-
     nombre = models.CharField(max_length=100)
-    tipo = models.CharField(max_length=20, choices=TipoSala.choices)
     capacidad = models.PositiveIntegerField(default=40)
 
     def __str__(self):
-        return f"{self.nombre} ({self.get_tipo_display()})"
+        return f"{self.nombre}"
 
     class Meta:
         verbose_name = 'Sala'

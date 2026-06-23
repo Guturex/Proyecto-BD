@@ -38,7 +38,6 @@
       <thead>
         <tr>
           <th>Nombre</th>
-          <th>Tipo</th>
           <th>Capacidad</th>
           {% if puede_agregar %}
           <th>Acciones</th>
@@ -49,7 +48,6 @@
         {% for sala in salas %}
         <tr>
           <td>{{ sala.nombre }}</td>
-          <td>{{ sala.get_tipo_display }}</td>
           <td>{{ sala.capacidad }} personas</td>
           {% if puede_agregar %}
           <td>

@@ -15,14 +15,13 @@ datos relacionados con la gestión de salas y eventos en la plataforma SalasMan.
 
 '''
 El modelo Sala se registra con una configuración personalizada que muestra el nombre,
-tipo y capacidad en la lista de salas. Se habilitan filtros por tipo de sala y una
-barra de búsqueda por nombre para facilitar la localización de salas específicas.
+y capacidad en la lista de salas. Se habilitan filtros por tipo de sala y una barra
+de búsqueda por nombre para facilitar la localización de salas específicas.
 '''
 
 @admin.register(Sala)
 class SalaAdmin(admin.ModelAdmin):
-    list_display = ('nombre', 'tipo', 'capacidad')
-    list_filter = ('tipo',)
+    list_display = ('nombre', 'capacidad')
     search_fields = ('nombre',)
 
     def has_add_permission(self, request):

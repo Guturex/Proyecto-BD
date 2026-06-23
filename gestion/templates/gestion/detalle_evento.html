@@ -62,11 +62,15 @@
       </div>
 
       <div class="detalle__fila">
-        <span class="detalle__label">Salas</span>
-        <span class="detalle__valor">
-          {% for sala in evento.salas.all %}{{ sala.nombre }}{% if not forloop.last %}, {% endif %}{% endfor %}
-        </span>
-      </div>
+              <span class="detalle__label">Sala(s)</span>
+              <span class="detalle__valor">
+                {% for evt_sala in evento.eventosala_set.all %}
+                  {{ evt_sala.sala.nombre }} ({{ evt_sala.acomodo.nombre|default:"Sin acomodo" }}){% if not forloop.last %}, <br> {% endif %}
+                {% empty %}
+                  —
+                {% endfor %}
+              </span>
+            </div>
 
       <div class="detalle__fila">
         <span class="detalle__label">Notas</span>
