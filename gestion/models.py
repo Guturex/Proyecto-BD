@@ -85,7 +85,13 @@ class Evento(models.Model):
     hora_fin = models.TimeField()  
 
     # Salas asignadas al evento (un evento puede ocupar varias salas)
-    salas = models.ManyToManyField(Sala, related_name='eventos')
+    # Ahora usa modelo intermedio
+    
+    salas = models.ManyToManyField(
+        Sala, 
+        through='EventoSala', 
+        related_name='eventos'
+    )
 
     # Notas adicionales del admin
     notas = models.TextField(blank=True)
@@ -219,3 +225,31 @@ class Incidente(models.Model):
         verbose_name = 'Incidente'
         verbose_name_plural = 'Incidentes'
         ordering = ['-fecha']
+
+# -----------------------------------------
+#  6. ACOMODO
+# -----------------------------------------
+
+class Acomodo(models.Model):
+    nombre = models.CharField(max_length=100)
+
+    def __str__(self):
+        return self.nombre
+
+    class Meta:
+        verbose_name = 'Acomodo'
+        verbose_name_plural = 'Acomodos'
+
+# Modelo intermedio para relacionar Evento con Sala
+class EventoSala(models.Model):
+    evento = models.ForeignKey(Evento, on_delete=models.CASCADE)
+    sala = models.ForeignKey(Sala, on_delete=models.CASCADE)
+    acomodo = models.ForeignKey(Acomodo, on_delete=models.SET_NULL, null=True, blank=True)
+
+    class Meta:
+        unique_together = ('evento', 'sala')
+        verbose_name = 'Sala Asignada'
+        verbose_name_plural = 'Salas Asignadas'
+
+    def __str__(self):
+        return f"{self.sala.nombre} - {self.acomodo.nombre if self.acomodo else 'Sin acomodo'}"

@@ -3,9 +3,7 @@ from django.shortcuts import render, redirect
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib import messages
-from .models import Sala, Evento
-from .models import Sala, Evento, ReglaRecurrencia, ServicioAdicional
-from .models import Sala, Evento, ReglaRecurrencia, ServicioAdicional, Incidente
+from .models import Sala, Evento, ReglaRecurrencia, ServicioAdicional, Incidente, Acomodo, EventoSala
 import copy
 
 '''
@@ -240,6 +238,8 @@ Si el formulario es válido, guarda el evento y redirige al calendario.
 @login_required(login_url='gestion:login')
 def crear_evento(request):
     salas = Sala.objects.all().order_by('nombre')
+    acomodos = Acomodo.objects.all().order_by('nombre')
+
     if request.method == 'POST':
         nombre_evento = request.POST.get('nombre_evento')
         nombre_responsable = request.POST.get('nombre_responsable')
@@ -254,7 +254,8 @@ def crear_evento(request):
         # --- VALIDACIÓN 1: SALAS OBLIGATORIAS ---
         if not salas_ids:
             contexto = {
-                'salas': salas, 
+                'salas': salas,
+                'acomodos': acomodos,
                 'errores': {'salas': ['Por favor, selecciona al menos una sala para el evento.']},
                 'datos': request.POST,
                 'salas_seleccionadas': [int(s) for s in salas_ids],
@@ -273,7 +274,8 @@ def crear_evento(request):
 
         if asistentes_int > capacidad_total:
             contexto = {
-                'salas': salas, 
+                'salas': salas,
+                'acomodos': acomodos,
                 'errores': {'asistentes': [f'El número de asistentes ({asistentes_int}) excede la capacidad máxima de las salas seleccionadas ({capacidad_total} personas).']},
                 'datos': request.POST,
                 'salas_seleccionadas': [int(s) for s in salas_ids],
@@ -322,7 +324,8 @@ def crear_evento(request):
 
         if empalme_encontrado:
             contexto = {
-                'salas': salas, 
+                'salas': salas,
+                'acomodos': acomodos,
                 'errores': {'horario': ['El horario se empalma con otro evento (o recurrencia) ya agendado en la(s) sala(s) seleccionada(s).']},
                 'datos': request.POST,
                 'salas_seleccionadas': [int(s) for s in salas_ids],
@@ -343,7 +346,17 @@ def crear_evento(request):
             )
             evento.full_clean()
             evento.save()
-            evento.salas.set(salas_ids)
+
+            for sala_id in salas_ids:
+                # Se espera que el HTML envíe id acomodo con nombre "acomodo_<sala_id>"
+                acomodo_id = request.POST.get(f'acomodo_{sala_id}')
+                acomodo_obj = Acomodo.objects.filter(id=acomodo_id).first() if acomodo_id else None
+                
+                EventoSala.objects.create(
+                    evento=evento,
+                    sala_id=sala_id,
+                    acomodo=acomodo_obj
+                )
 
             recurrencia = request.POST.get('recurrencia')
             fecha_fin_serie = request.POST.get('fecha_fin_serie')
@@ -363,10 +376,10 @@ def crear_evento(request):
 
             return redirect('gestion:calendario')
         except Exception as e:
-            contexto = {'salas': salas, 'errores': e.message_dict if hasattr(e, 'message_dict') else {'error': [str(e)]}, 'datos': request.POST, 'salas_seleccionadas': [int(s) for s in salas_ids],}
+            contexto = {'salas': salas, 'acomodos': acomodos, 'errores': e.message_dict if hasattr(e, 'message_dict') else {'error': [str(e)]}, 'datos': request.POST, 'salas_seleccionadas': [int(s) for s in salas_ids],}
             return render(request, 'gestion/crear_evento.html', contexto)
 
-    contexto = {'salas': salas}
+    contexto = {'salas': salas, 'acomodos': acomodos}
     return render(request, 'gestion/crear_evento.html', contexto)
 
 # -----------------------------------------
@@ -457,6 +470,7 @@ Carga los datos actuales en el formulario y los actualiza al hacer POST.
 def editar_evento(request, evento_id):
     evento = Evento.objects.prefetch_related('salas', 'servicios').select_related('regla_recurrencia').get(id=evento_id)
     salas = Sala.objects.all().order_by('nombre')
+    acomodos = Acomodo.objects.all().order_by('nombre')
 
     if request.method == 'POST':
         salas_ids = request.POST.getlist('salas')
@@ -465,7 +479,8 @@ def editar_evento(request, evento_id):
         if not salas_ids:
             contexto = {
                 'evento': evento,
-                'salas': salas, 
+                'salas': salas,
+                'acomodos': acomodos,
                 'errores': {'salas': ['No puedes dejar un evento sin sala. Selecciona al menos una.']}
             }
             return render(request, 'gestion/editar_evento.html', contexto)
@@ -489,7 +504,8 @@ def editar_evento(request, evento_id):
         if asistentes_int > capacidad_total:
             contexto = {
                 'evento': evento,
-                'salas': salas, 
+                'salas': salas,
+                'acomodos': acomodos,
                 'errores': {'asistentes': [f'El número de asistentes ({asistentes_int}) excede la capacidad máxima de las salas seleccionadas ({capacidad_total} personas).']}
             }
             return render(request, 'gestion/editar_evento.html', contexto)
@@ -539,7 +555,8 @@ def editar_evento(request, evento_id):
         if empalme_encontrado:
             contexto = {
                 'evento': evento,
-                'salas': salas, 
+                'salas': salas,
+                'acomodos': acomodos,
                 'errores': {'horario': ['El nuevo horario se empalma con otro evento (o recurrencia) confirmado en esa sala.']}
             }
             return render(request, 'gestion/editar_evento.html', contexto)
@@ -556,7 +573,17 @@ def editar_evento(request, evento_id):
             evento.notas = request.POST.get('notas')
             evento.full_clean()
             evento.save()
-            evento.salas.set(salas_ids)
+            
+            EventoSala.objects.filter(evento=evento).delete() # Limpiar relaciones anteriores
+            for sala_id in salas_ids:
+                acomodo_id = request.POST.get(f'acomodo_{sala_id}')
+                acomodo_obj = Acomodo.objects.filter(id=acomodo_id).first() if acomodo_id else None
+                
+                EventoSala.objects.create(
+                    evento=evento,
+                    sala_id=sala_id,
+                    acomodo=acomodo_obj
+                )
 
             recurrencia = request.POST.get('recurrencia')
             fecha_fin_serie = request.POST.get('fecha_fin_serie')
@@ -574,10 +601,10 @@ def editar_evento(request, evento_id):
 
             return redirect('gestion:detalle_evento', evento_id=evento.id)
         except Exception as e:
-            contexto = {'evento': evento, 'salas': salas, 'errores': e.message_dict if hasattr(e, 'message_dict') else {'error': [str(e)]}}
+            contexto = {'evento': evento, 'salas': salas, 'acomodos': acomodos, 'errores': e.message_dict if hasattr(e, 'message_dict') else {'error': [str(e)]}}
             return render(request, 'gestion/editar_evento.html', contexto)
 
-    contexto = {'evento': evento, 'salas': salas}
+    contexto = {'evento': evento, 'salas': salas, 'acomodos': acomodos}
     return render(request, 'gestion/editar_evento.html', contexto)
   
 # -----------------------------------------
