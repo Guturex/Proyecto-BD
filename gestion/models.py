@@ -44,7 +44,6 @@ class Sala(models.Model):
         verbose_name = 'Sala'
         verbose_name_plural = 'Salas'
 
-
 # -----------------------------------------
 #  2. EVENTO
 # -----------------------------------------
@@ -113,7 +112,6 @@ class Evento(models.Model):
         verbose_name_plural = 'Eventos'
         ordering            = ['fecha', 'hora_inicio']
 
-
 # -----------------------------------------
 #  3. EVENTO RECURRENTE
 # -----------------------------------------
@@ -146,7 +144,6 @@ class ReglaRecurrencia(models.Model):
     class Meta:
         verbose_name = 'Regla de Recurrencia'
         verbose_name_plural = 'Reglas de Recurrencia'
-
 
 # -----------------------------------------
 #  4. SERVICIOS ADICIONALES  
@@ -183,7 +180,6 @@ class ServicioAdicional(models.Model):
     class Meta:
         verbose_name = 'Servicio Adicional'
         verbose_name_plural = 'Servicios Adicionales'
-
 
 # -----------------------------------------
 #  5. BITÁCORA DE INCIDENTES  

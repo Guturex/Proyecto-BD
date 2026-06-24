@@ -12,14 +12,12 @@ Se encarga del login/logout del administrador y de construir
 la vista de calendario semanal con todas las salas y eventos.
 '''
 
-
 # -----------------------------------------
 #  CONSTANTES
 # -----------------------------------------
 
 BLOQUES_HORA = list(range(8, 19))
 DIAS_SEMANA  = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes']
-
 
 # -----------------------------------------
 #  AUXILIARES
@@ -36,7 +34,6 @@ def obtener_semana(desplazamiento=0):
     hoy   = date.today()
     lunes = hoy - timedelta(days=hoy.weekday()) + timedelta(weeks=desplazamiento)
     return [lunes + timedelta(days=i) for i in range(5)]
-
 
 '''
 construir_cuadricula arma la cuadrícula del calendario.
@@ -104,7 +101,6 @@ def construir_cuadricula(dias, salas, eventos):
 
     return filas
 
-
 # -----------------------------------------
 #  1. LOGIN
 # -----------------------------------------
@@ -133,16 +129,13 @@ def vista_login(request):
 
     return render(request, 'gestion/login.html')
 
-
 # -----------------------------------------
 #  2. LOGOUT
 # -----------------------------------------
 
-
 def vista_logout(request):
     logout(request)
     return redirect('gestion:calendario')
-
 
 # -----------------------------------------
 #  3. CALENDARIO
@@ -159,7 +152,6 @@ Solo muestra eventos con estado CONFIRMADO.
 Requiere que el administrador tenga sesión activa.
 '''
 
-#@login_required(login_url='gestion:login')
 def calendario(request):
     desplazamiento = int(request.GET.get('semana', 0))
     dias           = obtener_semana(desplazamiento)
@@ -261,7 +253,6 @@ def crear_evento(request):
                 'salas_seleccionadas': [int(s) for s in salas_ids],
             }
             return render(request, 'gestion/crear_evento.html', contexto)
-        # ----------------------------------------
 
         # --- VALIDACIÓN 2: CAPACIDAD DE SALAS ---
         try:
@@ -281,7 +272,6 @@ def crear_evento(request):
                 'salas_seleccionadas': [int(s) for s in salas_ids],
             }
             return render(request, 'gestion/crear_evento.html', contexto)
-        # ----------------------------------------
 
         # --- VALIDACIÓN 3: EMPALME DE HORARIOS ---
         fecha_obj = datetime.strptime(fecha, '%Y-%m-%d').date()
@@ -397,7 +387,6 @@ def lista_incidencias(request):
     contexto = {'incidencias': incidencias}
     return render(request, 'gestion/lista_incidencias.html', contexto)
 
-
 # -----------------------------------------
 #  6. CREAR INCIDENCIA
 # -----------------------------------------
@@ -443,6 +432,7 @@ def crear_incidencia(request):
 
     contexto = {'salas': salas, 'eventos': eventos}
     return render(request, 'gestion/crear_incidencia.html', contexto)
+
 # -----------------------------------------
 #  7. DETALLE DE EVENTO
 # -----------------------------------------
@@ -452,11 +442,11 @@ Vista para ver el detalle de un evento específico.
 Muestra toda la información del evento, sus salas, servicios y recurrencia.
 '''
 
-@login_required(login_url='gestion:login')
 def detalle_evento(request, evento_id):
     evento = Evento.objects.prefetch_related('salas', 'servicios').select_related('regla_recurrencia').get(id=evento_id)
     contexto = {'evento': evento}
     return render(request, 'gestion/detalle_evento.html', contexto)
+
 # -----------------------------------------
 #  8. EDITAR EVENTO
 # -----------------------------------------
@@ -484,7 +474,6 @@ def editar_evento(request, evento_id):
                 'errores': {'salas': ['No puedes dejar un evento sin sala. Selecciona al menos una.']}
             }
             return render(request, 'gestion/editar_evento.html', contexto)
-        # ----------------------------------------
 
         # Extraemos los datos del POST para las siguientes validaciones y guardado
         num_asistentes_post = request.POST.get('num_asistentes')
@@ -509,7 +498,6 @@ def editar_evento(request, evento_id):
                 'errores': {'asistentes': [f'El número de asistentes ({asistentes_int}) excede la capacidad máxima de las salas seleccionadas ({capacidad_total} personas).']}
             }
             return render(request, 'gestion/editar_evento.html', contexto)
-        # ----------------------------------------
 
         # --- VALIDACIÓN 3: EMPALME DE HORARIOS ---
         fecha_obj = datetime.strptime(fecha_post, '%Y-%m-%d').date()
@@ -606,7 +594,7 @@ def editar_evento(request, evento_id):
 
     contexto = {'evento': evento, 'salas': salas, 'acomodos': acomodos}
     return render(request, 'gestion/editar_evento.html', contexto)
-  
+
 # -----------------------------------------
 #  9. ELIMINAR EVENTO
 # -----------------------------------------
@@ -625,7 +613,6 @@ def eliminar_evento(request, evento_id):
     contexto = {'evento': evento}
     return render(request, 'gestion/eliminar_evento.html', contexto)
 
-
 # -----------------------------------------
 #  10. ADMINISTRACIÓN DE SALAS
 # -----------------------------------------
@@ -638,7 +625,6 @@ def admin_salas(request):
         'puede_agregar': request.user.is_superuser,
     }
     return render(request, 'gestion/admin_salas.html', contexto)
-
 
 @login_required(login_url='gestion:login')
 @user_passes_test(lambda u: u.is_superuser, login_url='gestion:admin_salas')
@@ -659,7 +645,6 @@ def crear_sala(request):
             return render(request, 'gestion/crear_sala.html', {'errores': errores})
 
     return render(request, 'gestion/crear_sala.html')
-
 
 @login_required(login_url='gestion:login')
 @user_passes_test(lambda u: u.is_superuser, login_url='gestion:admin_salas')
@@ -726,7 +711,6 @@ def editar_incidencia(request, incidencia_id):
 
     contexto = {'incidencia': incidencia, 'salas': salas, 'eventos': eventos}
     return render(request, 'gestion/editar_incidencia.html', contexto)
-
 
 # -----------------------------------------
 #  12. ELIMINAR INCIDENCIA
